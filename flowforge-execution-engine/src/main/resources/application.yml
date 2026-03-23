@@ -1,0 +1,55 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: flowforge-execution-engine
+
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/flowforge_executions
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+
+flowforge:
+  workflow-service:
+    url: http://localhost:8082
+  anthropic:
+    api-key: ${ANTHROPIC_API_KEY:dummy-key-for-dev}
+    api-version: 2023-06-01
+
+logging:
+  level:
+    com.flowforge: DEBUG
+    org.springframework.data.mongodb: INFO
+    org.springframework.kafka: WARN
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
