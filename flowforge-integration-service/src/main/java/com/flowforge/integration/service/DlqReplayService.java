@@ -80,9 +80,26 @@ public class DlqReplayService {
     }
 
     /**
-     * Replay a single DLQ message by re-triggering the failed step via the execution engine.
+     * Replay a single DLQ message using its stored execution context.
      */
     public DlqMessage replayMessage(String clientId, String messageId, String replayedBy) {
+        return replayMessage(clientId, messageId, replayedBy, null, false);
+    }
+
+    /**
+     * Replay a single DLQ message by re-triggering the failed step via the execution engine.
+     *
+     * @param clientId           Tenant ID
+     * @param messageId          DLQ message ID
+     * @param replayedBy         Identity of the user/system initiating the replay
+     * @param contextOverride    If non-null, replaces the stored executionContext entirely.
+     *                           Populated when a user with ADMIN role or dlq:write permission
+     *                           edits the context before replaying.
+     * @param contextWasModified Whether the contextOverride was intentionally supplied.
+     *                           Recorded in the ReplayAttempt for audit purposes.
+     */
+    public DlqMessage replayMessage(String clientId, String messageId, String replayedBy,
+                                    Map<String, Object> contextOverride, boolean contextWasModified) {
         DlqMessage message = getMessage(clientId, messageId);
 
         if (STATUS_DISCARDED.equals(message.getStatus())) {
@@ -96,7 +113,13 @@ public class DlqReplayService {
         ReplayAttempt attempt = ReplayAttempt.builder()
                 .replayedBy(replayedBy != null ? replayedBy : "SYSTEM")
                 .replayedAt(LocalDateTime.now())
+                .contextWasModified(contextWasModified)
                 .build();
+
+        // Use caller-supplied context if provided; otherwise fall back to the stored snapshot.
+        Map<String, Object> effectiveContext = (contextOverride != null)
+                ? contextOverride
+                : message.getExecutionContext();
 
         try {
             Map<String, Object> replayRequest = new HashMap<>();
@@ -106,7 +129,7 @@ public class DlqReplayService {
             replayRequest.put("stepId", message.getStepId());
             replayRequest.put("stepType", message.getStepType());
             replayRequest.put("stepConfig", message.getStepConfig());
-            replayRequest.put("executionContext", message.getExecutionContext());
+            replayRequest.put("executionContext", effectiveContext);
             replayRequest.put("clientId", clientId);
 
             String response = webClientBuilder.build()
@@ -118,7 +141,8 @@ public class DlqReplayService {
                     .bodyToMono(String.class)
                     .block();
 
-            log.info("DLQ message {} replayed successfully. Response: {}", messageId, response);
+            log.info("DLQ message {} replayed successfully (contextModified={}). Response: {}",
+                    messageId, contextWasModified, response);
 
             attempt.setResult("SUCCESS");
             message.setStatus(STATUS_RESOLVED);

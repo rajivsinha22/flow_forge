@@ -20,21 +20,44 @@ export const getDlqMessage = async (id: string): Promise<DlqMessage> => {
   return unwrap<DlqMessage>(res.data)
 }
 
-export const replayDlqMessage = async (id: string): Promise<{ executionId: string }> => {
-  const res = await api.post(`/dlq/${id}/replay`)
-  return unwrap<{ executionId: string }>(res.data)
+/**
+ * Replay a DLQ message.
+ * @param executionContext  When provided (ADMIN / dlq:write only), replaces the stored
+ *                         execution context snapshot so the step runs with patched variables.
+ */
+export const replayDlqMessage = async (
+  id: string,
+  executionContext?: Record<string, unknown>,
+): Promise<DlqMessage> => {
+  const body = executionContext ? { executionContext } : undefined
+  const res = await api.post(`/dlq/${id}/replay`, body)
+  return unwrap<DlqMessage>(res.data)
 }
 
-export const replayAllDlqMessages = async (workflowName?: string): Promise<{ count: number }> => {
-  const res = await api.post('/dlq/replay-all', { workflowName })
-  return unwrap<{ count: number }>(res.data)
+export const replayAllDlqMessages = async (): Promise<{
+  total: number
+  succeeded: number
+  failed: number
+  messages: DlqMessage[]
+}> => {
+  const res = await api.post('/dlq/replay-batch')
+  return unwrap(res.data)
 }
 
-export const discardDlqMessage = async (id: string): Promise<void> => {
-  await api.post(`/dlq/${id}/discard`)
+/** Discard a DLQ message — marks it DISCARDED, no further replay possible. */
+export const discardDlqMessage = async (id: string): Promise<DlqMessage> => {
+  const res = await api.delete(`/dlq/${id}`)
+  return unwrap<DlqMessage>(res.data)
 }
 
-export const getDlqStats = async (): Promise<{ pending: number; replayed: number; discarded: number }> => {
+export interface DlqStats {
+  pending: number
+  replaying: number
+  resolved: number
+  discarded: number
+}
+
+export const getDlqStats = async (): Promise<DlqStats> => {
   const res = await api.get('/dlq/stats')
-  return unwrap<{ pending: number; replayed: number; discarded: number }>(res.data)
+  return unwrap<DlqStats>(res.data)
 }

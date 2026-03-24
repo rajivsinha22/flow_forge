@@ -182,7 +182,6 @@ const WorkflowList: React.FC = () => {
             <option value="KAFKA">Kafka</option>
             <option value="CRON">Cron</option>
             <option value="API">API</option>
-            <option value="WEBHOOK">Webhook</option>
           </select>
           <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
         </div>

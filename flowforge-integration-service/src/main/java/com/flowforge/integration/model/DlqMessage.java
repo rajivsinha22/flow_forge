@@ -5,6 +5,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.index.Indexed;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -36,6 +37,20 @@ public class DlqMessage {
 
     private Map<String, Object> executionContext;
 
+    /**
+     * Per-attempt error records from the original execution retry loop —
+     * populated by the execution engine when the step is dead-lettered and
+     * carried in the {@code STEP_DEAD_LETTERED} Kafka event.
+     *
+     * <p>Each entry is a map with keys: {@code attemptNumber} (int),
+     * {@code errorMessage} (String), {@code failedAt} (ISO-8601 String),
+     * {@code durationMs} (long).
+     *
+     * <p>Displayed in the DLQ console as the <em>Execution Retry History</em>
+     * phase of the unified error timeline, before any manual replay attempts.
+     */
+    private List<Map<String, Object>> retryAttempts = new ArrayList<>();
+
     private int retryCount;
 
     /**
@@ -55,7 +70,9 @@ public class DlqMessage {
     public DlqMessage(String id, String clientId, String executionId, String workflowId,
                       String workflowName, String stepId, String stepName, String stepType,
                       String failureReason, Map<String, Object> stepConfig,
-                      Map<String, Object> executionContext, int retryCount, String status,
+                      Map<String, Object> executionContext,
+                      List<Map<String, Object>> retryAttempts,
+                      int retryCount, String status,
                       List<ReplayAttempt> replayHistory, LocalDateTime failedAt,
                       LocalDateTime updatedAt) {
         this.id = id;
@@ -69,6 +86,7 @@ public class DlqMessage {
         this.failureReason = failureReason;
         this.stepConfig = stepConfig;
         this.executionContext = executionContext;
+        this.retryAttempts = retryAttempts != null ? retryAttempts : new ArrayList<>();
         this.retryCount = retryCount;
         this.status = status;
         this.replayHistory = replayHistory;
@@ -164,6 +182,15 @@ public class DlqMessage {
         this.executionContext = executionContext;
     }
 
+    public List<Map<String, Object>> getRetryAttempts() {
+        if (retryAttempts == null) retryAttempts = new ArrayList<>();
+        return retryAttempts;
+    }
+
+    public void setRetryAttempts(List<Map<String, Object>> retryAttempts) {
+        this.retryAttempts = retryAttempts;
+    }
+
     public int getRetryCount() {
         return retryCount;
     }
@@ -247,6 +274,7 @@ public class DlqMessage {
         private String failureReason;
         private Map<String, Object> stepConfig;
         private Map<String, Object> executionContext;
+        private List<Map<String, Object>> retryAttempts = new ArrayList<>();
         private int retryCount;
         private String status;
         private List<ReplayAttempt> replayHistory;
@@ -264,6 +292,7 @@ public class DlqMessage {
         public Builder failureReason(String failureReason) { this.failureReason = failureReason; return this; }
         public Builder stepConfig(Map<String, Object> stepConfig) { this.stepConfig = stepConfig; return this; }
         public Builder executionContext(Map<String, Object> executionContext) { this.executionContext = executionContext; return this; }
+        public Builder retryAttempts(List<Map<String, Object>> retryAttempts) { this.retryAttempts = retryAttempts; return this; }
         public Builder retryCount(int retryCount) { this.retryCount = retryCount; return this; }
         public Builder status(String status) { this.status = status; return this; }
         public Builder replayHistory(List<ReplayAttempt> replayHistory) { this.replayHistory = replayHistory; return this; }
@@ -273,7 +302,8 @@ public class DlqMessage {
         public DlqMessage build() {
             return new DlqMessage(id, clientId, executionId, workflowId, workflowName,
                     stepId, stepName, stepType, failureReason, stepConfig,
-                    executionContext, retryCount, status, replayHistory, failedAt, updatedAt);
+                    executionContext, retryAttempts, retryCount, status,
+                    replayHistory, failedAt, updatedAt);
         }
     }
 }

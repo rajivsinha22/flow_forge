@@ -305,6 +305,11 @@ export const DUMMY_STEP_EXECUTIONS_003 = [
     output: {},
     errorMessage: 'SMTP connection timeout after 3 retries: mail.acme.com:587',
     resolvedConfig: { channel: 'EMAIL', to: 'newuser@example.com', subject: 'Welcome to Acme!' },
+    retryAttempts: [
+      { attemptNumber: 1, errorMessage: 'SMTP connection timeout', failedAt: ago(110), durationMs: 10020 },
+      { attemptNumber: 2, errorMessage: 'SMTP connection timeout', failedAt: ago(100), durationMs: 10018 },
+      { attemptNumber: 3, errorMessage: 'SMTP timeout — mail.acme.com:587 unreachable', failedAt: ago(89), durationMs: 10025 },
+    ],
   },
 ]
 
@@ -534,33 +539,89 @@ export const DUMMY_DLQ = [
     id: 'dlq_001', executionId: 'exec_003', workflowName: 'user-onboarding', stepName: 'sendWelcomeEmail',
     stepType: 'NOTIFY', failureReason: 'SMTP connection timeout after 3 retries', retryCount: 3, status: 'PENDING',
     failedAt: ago(89),
+    retryAttempts: [
+      { attemptNumber: 1, errorMessage: 'SMTP connection timeout', failedAt: ago(110), durationMs: 10020 },
+      { attemptNumber: 2, errorMessage: 'SMTP connection timeout', failedAt: ago(100), durationMs: 10018 },
+      { attemptNumber: 3, errorMessage: 'SMTP timeout — mail.acme.com:587 unreachable', failedAt: ago(89), durationMs: 10025 },
+    ],
     replayHistory: [
-      { replayedAt: ago(60), replayedBy: 'priya@acme.com', result: 'FAILED', error: 'Still timing out' },
+      { replayedAt: ago(60), replayedBy: 'priya@acme.com', result: 'FAILED', errorMessage: 'Still timing out', contextWasModified: false },
     ],
   },
   {
     id: 'dlq_002', executionId: 'exec_008', workflowName: 'payment-flow', stepName: 'chargeCard',
     stepType: 'HTTP', failureReason: 'Payment gateway returned 502 Bad Gateway', retryCount: 3, status: 'PENDING',
-    failedAt: ago(239), replayHistory: [],
+    failedAt: ago(239),
+    retryAttempts: [
+      { attemptNumber: 1, errorMessage: '502 Bad Gateway', failedAt: ago(250), durationMs: 1320 },
+      { attemptNumber: 2, errorMessage: '502 Bad Gateway', failedAt: ago(247), durationMs: 1280 },
+      { attemptNumber: 3, errorMessage: '502 Bad Gateway from https://payment-gw.acme.io/charge', failedAt: ago(239), durationMs: 1305 },
+    ],
+    replayHistory: [],
   },
   {
     id: 'dlq_003', executionId: 'exec_012', workflowName: 'email-campaign', stepName: 'sendEmail',
     stepType: 'NOTIFY', failureReason: 'Rate limit exceeded (429) on email provider', retryCount: 3, status: 'PENDING',
-    failedAt: ago(1439), replayHistory: [],
+    failedAt: ago(1439),
+    retryAttempts: [
+      { attemptNumber: 1, errorMessage: '429 Too Many Requests — retry-after: 60s', failedAt: ago(1460), durationMs: 420 },
+      { attemptNumber: 2, errorMessage: '429 Too Many Requests — retry-after: 60s', failedAt: ago(1450), durationMs: 398 },
+      { attemptNumber: 3, errorMessage: '429 Too Many Requests — daily sending limit reached', failedAt: ago(1439), durationMs: 412 },
+    ],
+    replayHistory: [],
   },
   {
     id: 'dlq_004', executionId: 'exec_018', workflowName: 'payment-flow', stepName: 'chargeCard',
     stepType: 'HTTP', failureReason: 'SSL certificate error: certificate expired', retryCount: 3, status: 'DISCARDED',
     failedAt: ago(899),
+    retryAttempts: [
+      { attemptNumber: 1, errorMessage: 'SSL certificate expired — CN=payment-gw.acme.io', failedAt: ago(920), durationMs: 1840 },
+      { attemptNumber: 2, errorMessage: 'SSL certificate expired', failedAt: ago(915), durationMs: 1760 },
+      { attemptNumber: 3, errorMessage: 'SSL certificate expired — expired 2025-12-31', failedAt: ago(899), durationMs: 1800 },
+    ],
     replayHistory: [
-      { replayedAt: ago(800), replayedBy: 'admin@acme.com', result: 'FAILED', error: 'SSL still failing' },
-      { replayedAt: ago(700), replayedBy: 'admin@acme.com', result: 'FAILED', error: 'SSL still failing' },
+      { replayedAt: ago(800), replayedBy: 'admin@acme.com', result: 'FAILED', errorMessage: 'SSL still failing', contextWasModified: false },
+      { replayedAt: ago(700), replayedBy: 'admin@acme.com', result: 'FAILED', errorMessage: 'SSL still failing', contextWasModified: false },
     ],
   },
   {
     id: 'dlq_005', executionId: 'exec_021', workflowName: 'user-onboarding', stepName: 'createAccount',
     stepType: 'HTTP', failureReason: 'Upstream service returned 500 Internal Server Error', retryCount: 3, status: 'PENDING',
-    failedAt: ago(2879), replayHistory: [],
+    failedAt: ago(2879),
+    retryAttempts: [
+      { attemptNumber: 1, errorMessage: '500 Internal Server Error from https://accounts.acme.io', failedAt: ago(2900), durationMs: 890 },
+      { attemptNumber: 2, errorMessage: '500 Internal Server Error', failedAt: ago(2890), durationMs: 905 },
+      { attemptNumber: 3, errorMessage: '500 Internal Server Error — service degraded', failedAt: ago(2879), durationMs: 912 },
+    ],
+    replayHistory: [],
+    executionContext: { stepOutputs: {}, variables: { env: 'prod', region: 'us-east-1' }, input: { userId: 'USR-7712' } },
+    payload: { userId: 'USR-7712', email: 'newuser@acme.io' },
+  },
+  {
+    // Full error trail demo — every auto-retry AND every manual replay also failed
+    id: 'dlq_006', executionId: 'exec_029', workflowName: 'payment-flow', stepName: 'chargeCard',
+    stepType: 'HTTP', failureReason: 'SSL certificate verification failed: unable to get local issuer certificate',
+    retryCount: 5, status: 'PENDING',
+    failedAt: ago(4320),
+    retryAttempts: [
+      { attemptNumber: 1, errorMessage: 'SSL certificate verification failed', failedAt: ago(4420), durationMs: 1520 },
+      { attemptNumber: 2, errorMessage: 'SSL certificate verification failed', failedAt: ago(4380), durationMs: 1488 },
+      { attemptNumber: 3, errorMessage: 'certificate has expired — CN=billing.acme.io, expired 2026-01-01', failedAt: ago(4320), durationMs: 1510 },
+    ],
+    replayHistory: [
+      { replayedAt: ago(4200), replayedBy: 'admin@acme.io', result: 'FAILED',
+        errorMessage: 'SSL certificate verification failed', contextWasModified: false },
+      { replayedAt: ago(3600), replayedBy: 'system', result: 'FAILED',
+        errorMessage: 'SSL certificate verification failed', contextWasModified: false },
+      { replayedAt: ago(1800), replayedBy: 'admin@acme.io', result: 'FAILED',
+        errorMessage: 'certificate has expired — CN=billing.acme.io', contextWasModified: true },
+    ],
+    executionContext: {
+      stepOutputs: { 'validate-card': { valid: true, last4: '4242' } },
+      variables: { paymentGatewayUrl: 'https://billing.acme.io/charge', currency: 'USD' },
+      input: { orderId: 'ORD-8821', amount: 249.99 },
+    },
+    payload: { orderId: 'ORD-8821', amount: 249.99, currency: 'USD' },
   },
 ]
 

@@ -3,6 +3,7 @@ package com.flowforge.execution.controller;
 import com.flowforge.common.response.ApiResponse;
 import com.flowforge.execution.dto.ExecutionDetailDto;
 import com.flowforge.execution.dto.ExecutionTraceDto;
+import com.flowforge.execution.dto.ReplayStepRequest;
 import com.flowforge.execution.dto.ResumeWaitRequest;
 import com.flowforge.execution.dto.TriggerExecutionRequest;
 import com.flowforge.execution.engine.WorkflowOrchestrator;
@@ -265,6 +266,43 @@ public class ExecutionController {
         }
         WaitToken saved = waitTokenRepository.save(waitToken);
         return ResponseEntity.ok(ApiResponse.success(saved));
+    }
+
+    /**
+     * POST /api/v1/executions/replay-step
+     * DLQ Replay — re-execute a specific failed step within its original execution
+     * and continue downstream steps on success.
+     *
+     * <p>Called by the integration-service {@code DlqReplayService} when a user
+     * triggers a replay from the Dead Letter Queue console. The request carries the
+     * exact execution context that was captured at the point of failure so the step
+     * is replayed with identical inputs.
+     *
+     * <p>On success the engine resumes normal routing (onSuccess edges), so the
+     * remainder of the workflow continues automatically. On failure the step is
+     * dead-lettered again and the DLQ message status returns to PENDING.
+     */
+    @PostMapping("/executions/replay-step")
+    public ResponseEntity<ApiResponse<WorkflowExecution>> replayStep(
+            @RequestHeader("X-Client-Id") String clientId,
+            @RequestHeader(value = "X-User-Id", defaultValue = "system") String userId,
+            @RequestBody ReplayStepRequest request) {
+
+        log.info("DLQ replay-step: executionId={} stepId={} dlqMessageId={} clientId={}",
+                request.getExecutionId(), request.getStepId(), request.getDlqMessageId(), clientId);
+
+        if (request.getExecutionId() == null || request.getStepId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "executionId and stepId are required for replay-step");
+        }
+
+        WorkflowExecution execution = orchestrator.replayStep(
+                clientId,
+                request.getExecutionId(),
+                request.getStepId(),
+                request.getExecutionContext());
+
+        return ResponseEntity.ok(ApiResponse.success(execution));
     }
 
     /**

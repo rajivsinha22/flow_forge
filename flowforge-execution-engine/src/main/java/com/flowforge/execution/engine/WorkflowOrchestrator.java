@@ -5,6 +5,7 @@ import com.flowforge.execution.executor.SubWorkflowExecutor;
 import com.flowforge.execution.kafka.ExecutionEventPublisher;
 import com.flowforge.execution.model.StepDef;
 import com.flowforge.execution.model.StepExecution;
+import com.flowforge.execution.model.StepRetryAttempt;
 import com.flowforge.execution.model.WorkflowDefinitionSnapshot;
 import com.flowforge.execution.model.WorkflowExecution;
 import com.flowforge.execution.repository.StepExecutionRepository;
@@ -285,8 +286,11 @@ public class WorkflowOrchestrator {
         StepExecutionResult result;
         int attempt = 1;
         int maxRetries = step.getRetryPolicy() != null ? step.getRetryPolicy().getMaxRetries() : 0;
+        LocalDateTime attemptStartedAt = stepExecution.getStartedAt() != null
+                ? stepExecution.getStartedAt() : LocalDateTime.now();
 
         do {
+            attemptStartedAt = LocalDateTime.now();
             try {
                 result = executor.execute(step, context);
             } catch (Exception e) {
@@ -301,6 +305,17 @@ public class WorkflowOrchestrator {
             if (result.isSuccess()) {
                 break;
             }
+
+            // Record every failed attempt (including the final one) in the retry trail.
+            long attemptDurationMs = java.time.Duration.between(attemptStartedAt, LocalDateTime.now()).toMillis();
+            stepExecution.getRetryAttempts().add(
+                    StepRetryAttempt.builder()
+                            .attemptNumber(attempt)
+                            .errorMessage(result.getErrorMessage())
+                            .failedAt(LocalDateTime.now())
+                            .durationMs(attemptDurationMs)
+                            .build()
+            );
 
             if (attempt <= maxRetries) {
                 log.warn("Step '{}' failed on attempt {}/{}, retrying...",
@@ -329,7 +344,16 @@ public class WorkflowOrchestrator {
         // Handle DLQ if all retries exhausted and still failed
         if (!result.isSuccess() && attempt > maxRetries + 1) {
             String dlqMessageId = UUID.randomUUID().toString();
-            eventPublisher.publishStepDeadLettered(executionId, step.getStepId(), dlqMessageId);
+            // Build execution context snapshot for replay: stepOutputs, variables, input
+            Map<String, Object> contextSnapshot = new HashMap<>();
+            contextSnapshot.put("stepOutputs", context.getStepOutputs() != null
+                    ? context.getStepOutputs() : new HashMap<>());
+            contextSnapshot.put("variables", context.getVariables() != null
+                    ? context.getVariables() : new HashMap<>());
+            contextSnapshot.put("input", context.getInput() != null
+                    ? context.getInput() : new HashMap<>());
+            eventPublisher.publishStepDeadLettered(
+                    executionId, step.getStepId(), dlqMessageId, stepExecution, step, contextSnapshot);
             log.error("Step '{}' dead-lettered after {} attempts. DLQ ID: {}",
                     step.getStepId(), attempt - 1, dlqMessageId);
         }
@@ -507,6 +531,120 @@ public class WorkflowOrchestrator {
                 failedExecution.getTriggeredBy() + ":retry",
                 failedExecution.getTriggerType()
         );
+    }
+
+    /**
+     * DLQ Replay — re-execute a specific failed step within the original execution,
+     * then continue downstream steps on success.
+     *
+     * <p>This is called by the integration-service when a user replays a DLQ message.
+     * Unlike {@link #retryExecution} (which starts a brand-new execution from scratch),
+     * replay resumes <em>inside the same execution record</em> from exactly the step that
+     * failed, restoring the variable/output state that existed at the point of failure so
+     * the step gets the same inputs it originally had.
+     *
+     * <p>Flow:
+     * <ol>
+     *   <li>Load the original execution (must be FAILED).</li>
+     *   <li>Restore execution context from the {@code savedContext} map carried by the
+     *       DLQ message (falls back to the execution's stored context when null).</li>
+     *   <li>Set the execution back to RUNNING and clear the old error message.</li>
+     *   <li>Find the target step in the workflow DAG.</li>
+     *   <li>Call {@link #executeStepsFrom} starting at that step — on success the
+     *       engine continues routing through onSuccess edges; on failure the step is
+     *       dead-lettered again.</li>
+     * </ol>
+     *
+     * @param clientId     tenant identifier
+     * @param executionId  the original execution id
+     * @param stepId       the step to re-run
+     * @param savedContext the execution context captured by the DLQ message (may be null)
+     * @return the updated WorkflowExecution after replay completes
+     */
+    public WorkflowExecution replayStep(String clientId, String executionId,
+                                         String stepId, Map<String, Object> savedContext) {
+
+        WorkflowExecution execution = getExecution(clientId, executionId);
+
+        if (!"FAILED".equals(execution.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Can only replay steps from FAILED executions. Current status: " + execution.getStatus());
+        }
+
+        // ── Load workflow definition ─────────────────────────────────────────
+        WorkflowDefinitionSnapshot definition;
+        try {
+            definition = definitionLoader.loadById(clientId, execution.getWorkflowId());
+        } catch (Exception e) {
+            log.error("Failed to load workflow definition for replay execution={}: {}", executionId, e.getMessage());
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                    "Workflow definition not found for replay: " + e.getMessage());
+        }
+
+        // ── Find the target step in the DAG ──────────────────────────────────
+        StepDef stepToReplay = definition.getSteps().stream()
+                .filter(s -> s.getStepId().equals(stepId))
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Step '" + stepId + "' not found in workflow '" + definition.getName() + "'"));
+
+        // ── Restore execution context from DLQ-captured snapshot ─────────────
+        Map<String, Object> restoredStepOutputs = new HashMap<>();
+        Map<String, Object> restoredVariables = new HashMap<>();
+
+        if (savedContext != null) {
+            // Prefer the context stored in the DLQ message — it reflects the exact
+            // state at the point of failure, which may differ from the execution record
+            // if partial updates occurred after the step started.
+            Object so = savedContext.get("stepOutputs");
+            if (so instanceof Map<?, ?> soMap) {
+                soMap.forEach((k, v) -> restoredStepOutputs.put(String.valueOf(k), v));
+            }
+            Object vars = savedContext.get("variables");
+            if (vars instanceof Map<?, ?> varsMap) {
+                varsMap.forEach((k, v) -> restoredVariables.put(String.valueOf(k), v));
+            }
+        } else {
+            // Fallback: use whatever is stored in the execution document
+            if (execution.getStepOutputs() != null) restoredStepOutputs.putAll(execution.getStepOutputs());
+            if (execution.getVariables() != null)   restoredVariables.putAll(execution.getVariables());
+        }
+
+        // ── Reset execution to RUNNING ───────────────────────────────────────
+        execution.setStatus("RUNNING");
+        execution.setCurrentStepId(stepId);
+        execution.setErrorMessage(null);
+        execution.setCompletedAt(null);
+        executionRepository.save(execution);
+
+        log.info("DLQ replay: re-running step='{}' in execution id={} workflow='{}'",
+                stepId, executionId, execution.getWorkflowName());
+
+        // ── Rebuild execution context ────────────────────────────────────────
+        ExecutionContext context = ExecutionContext.builder()
+                .clientId(clientId)
+                .executionId(executionId)
+                .workflowId(execution.getWorkflowId())
+                .workflowName(execution.getWorkflowName())
+                .input(execution.getInput() != null ? execution.getInput() : new HashMap<>())
+                .variables(restoredVariables)
+                .stepOutputs(restoredStepOutputs)
+                .envVars(new HashMap<>())
+                .build();
+
+        // ── Execute from the failed step (and continue routing on success) ───
+        try {
+            executeStepsFrom(execution, stepToReplay, definition.getSteps(), context);
+        } catch (Exception e) {
+            log.error("DLQ replay of step '{}' in execution {} threw unexpected error: {}",
+                    stepId, executionId, e.getMessage(), e);
+            WorkflowExecution refreshed = executionRepository.findById(executionId).orElse(execution);
+            if (!"FAILED".equals(refreshed.getStatus()) && !"SUCCESS".equals(refreshed.getStatus())) {
+                finalizeExecution(refreshed, "FAILED", "Replay failed: " + e.getMessage(), context);
+            }
+        }
+
+        return executionRepository.findById(executionId).orElse(execution);
     }
 
     private WorkflowExecution getExecution(String clientId, String executionId) {

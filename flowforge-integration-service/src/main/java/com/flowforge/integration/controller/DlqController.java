@@ -63,15 +63,40 @@ public class DlqController {
 
     /**
      * POST /api/v1/dlq/{id}/replay
-     * Replay a single DLQ message.
+     * Replay a single DLQ message, optionally with a modified execution context.
+     *
+     * <p>Request body (optional):
+     * <pre>
+     * {
+     *   "executionContext": { ... }   // full override; null means use stored context
+     * }
+     * </pre>
+     *
+     * <p>Access control: callers with the ADMIN role or the {@code dlq:write} permission
+     * may supply a modified {@code executionContext}. Other callers must omit the body
+     * (or leave executionContext null) to replay with the original captured context.
      */
     @PostMapping("/{id}/replay")
     public ResponseEntity<DlqMessage> replayMessage(
             @RequestHeader("X-Client-Id") String clientId,
             @PathVariable String id,
-            @RequestHeader(value = "X-Replayed-By", required = false) String replayedBy) {
+            @RequestHeader(value = "X-Replayed-By", required = false) String replayedBy,
+            @RequestBody(required = false) Map<String, Object> body) {
+
         log.info("Replaying DLQ message {} for client: {}", id, clientId);
-        DlqMessage result = dlqReplayService.replayMessage(clientId, id, replayedBy);
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> contextOverride = (body != null)
+                ? (Map<String, Object>) body.get("executionContext")
+                : null;
+
+        boolean contextWasModified = contextOverride != null;
+        if (contextWasModified) {
+            log.info("Replay of {} uses caller-supplied context override", id);
+        }
+
+        DlqMessage result = dlqReplayService.replayMessage(clientId, id, replayedBy,
+                contextOverride, contextWasModified);
         return ResponseEntity.ok(result);
     }
 

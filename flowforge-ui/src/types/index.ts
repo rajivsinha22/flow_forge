@@ -73,6 +73,19 @@ export interface Execution {
   context?: Record<string, unknown>
 }
 
+/**
+ * One entry per failed attempt produced by the execution engine retry loop.
+ * Stored on StepExecution.retryAttempts and copied to DlqMessage.retryAttempts
+ * via the STEP_DEAD_LETTERED Kafka event.
+ */
+export interface StepRetryAttempt {
+  /** 1-based attempt number (1 = first try, 2 = first retry, …). */
+  attemptNumber: number
+  errorMessage: string
+  failedAt: string
+  durationMs?: number
+}
+
 export interface StepExecution {
   id: string
   stepId: string
@@ -86,15 +99,43 @@ export interface StepExecution {
   durationMs?: number
 }
 
+export interface ReplayAttempt {
+  replayedBy: string
+  result: 'SUCCESS' | 'FAILED'
+  errorMessage?: string
+  replayedAt: string
+  /**
+   * True when this attempt used a manually edited execution context
+   * (ADMIN / dlq:write users only). Shown as an audit badge in replay history.
+   */
+  contextWasModified?: boolean
+}
+
 export interface DlqMessage {
   id: string
+  clientId: string
   executionId: string
+  workflowId?: string
   workflowName: string
+  stepId?: string
   stepName: string
+  stepType?: string
   failureReason: string
+  stepConfig?: Record<string, unknown>
+  executionContext?: Record<string, unknown>
+  /**
+   * Per-attempt errors from the execution engine's automatic retry loop
+   * (populated via the STEP_DEAD_LETTERED Kafka event).
+   * Covers every attempt from initial try through final exhausted retry.
+   */
+  retryAttempts?: StepRetryAttempt[]
   retryCount: number
+  /** PENDING | REPLAYING | RESOLVED | DISCARDED */
   status: string
+  /** Manual replay attempts triggered from the DLQ console. */
+  replayHistory?: ReplayAttempt[]
   failedAt: string
+  updatedAt?: string
   payload?: unknown
 }
 
@@ -215,6 +256,8 @@ export interface StepExecutionDetail extends StepExecution {
   resolvedConfig?: Record<string, unknown>;
   totalAttempts?: number;
   waitToken?: string;
+  /** Full per-attempt error history from the execution engine retry loop. */
+  retryAttempts?: StepRetryAttempt[];
 }
 
 export interface ExecutionStats {

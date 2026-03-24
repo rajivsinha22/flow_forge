@@ -391,14 +391,25 @@ function StepTimelineRow({
             {hasWaitToken && (
               <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded shrink-0">WAITING</span>
             )}
-            {(step.attemptNumber || 1) > 1 && (
-              <span className="text-xs bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded shrink-0">
-                ×{step.attemptNumber}
+            {(step.totalAttempts ?? step.attemptNumber ?? 1) > 1 && (
+              <span className={`text-xs px-1.5 py-0.5 rounded shrink-0 ${
+                step.status === 'FAILED'
+                  ? 'bg-red-100 text-red-600'
+                  : 'bg-orange-100 text-orange-600'
+              }`}>
+                {step.totalAttempts ?? step.attemptNumber} attempts
               </span>
             )}
           </div>
           {step.errorMessage && (
             <div className="text-xs text-red-500 truncate mt-0.5">{step.errorMessage}</div>
+          )}
+          {/* Retry exhausted hint */}
+          {step.status === 'FAILED' && (step.totalAttempts ?? 0) > 1 && (
+            <div className="text-[10px] text-orange-600 mt-0.5 flex items-center gap-1">
+              <AlertCircle size={10} />
+              {step.totalAttempts} attempts exhausted — check Retries tab for full error trail
+            </div>
           )}
         </div>
         <div className="text-right shrink-0 space-y-0.5">

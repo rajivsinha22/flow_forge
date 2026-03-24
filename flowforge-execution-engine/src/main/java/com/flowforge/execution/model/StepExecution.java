@@ -5,6 +5,8 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -37,6 +39,15 @@ public class StepExecution {
     private HttpCallLog httpCallLog;
     private Map<String, Object> resolvedConfig;
     private int totalAttempts;
+
+    /**
+     * Per-attempt error records accumulated during the retry loop.
+     * Contains one entry for every failed attempt (including the final one that
+     * triggered dead-lettering). This list is serialised into the
+     * {@code STEP_DEAD_LETTERED} Kafka event so the DLQ console can display
+     * the complete retry trail without querying the execution engine separately.
+     */
+    private List<StepRetryAttempt> retryAttempts = new ArrayList<>();
 
     public StepExecution() {
     }
@@ -91,6 +102,12 @@ public class StepExecution {
 
     public int getTotalAttempts() { return totalAttempts; }
     public void setTotalAttempts(int totalAttempts) { this.totalAttempts = totalAttempts; }
+
+    public List<StepRetryAttempt> getRetryAttempts() {
+        if (retryAttempts == null) retryAttempts = new ArrayList<>();
+        return retryAttempts;
+    }
+    public void setRetryAttempts(List<StepRetryAttempt> retryAttempts) { this.retryAttempts = retryAttempts; }
 
     @Override
     public boolean equals(Object o) {
@@ -147,6 +164,7 @@ public class StepExecution {
         private HttpCallLog httpCallLog;
         private Map<String, Object> resolvedConfig;
         private int totalAttempts;
+        private List<StepRetryAttempt> retryAttempts = new ArrayList<>();
 
         public Builder id(String id) { this.id = id; return this; }
         public Builder executionId(String executionId) { this.executionId = executionId; return this; }
@@ -165,6 +183,7 @@ public class StepExecution {
         public Builder httpCallLog(HttpCallLog httpCallLog) { this.httpCallLog = httpCallLog; return this; }
         public Builder resolvedConfig(Map<String, Object> resolvedConfig) { this.resolvedConfig = resolvedConfig; return this; }
         public Builder totalAttempts(int totalAttempts) { this.totalAttempts = totalAttempts; return this; }
+        public Builder retryAttempts(List<StepRetryAttempt> retryAttempts) { this.retryAttempts = retryAttempts; return this; }
 
         public StepExecution build() {
             StepExecution s = new StepExecution();
@@ -185,6 +204,7 @@ public class StepExecution {
             s.httpCallLog = this.httpCallLog;
             s.resolvedConfig = this.resolvedConfig;
             s.totalAttempts = this.totalAttempts;
+            s.retryAttempts = this.retryAttempts != null ? this.retryAttempts : new ArrayList<>();
             return s;
         }
     }

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { X, Clock, RotateCcw, Pause } from 'lucide-react';
+import { X, Clock, RotateCcw, Pause, AlertTriangle, XCircle } from 'lucide-react';
 import { StepExecutionDetail, WaitToken } from '../../types';
 import HttpCallLogViewer from './HttpCallLogViewer';
 import JsonViewer from '../shared/JsonViewer';
 import StatusBadge from '../shared/StatusBadge';
+import { formatDistanceToNow } from 'date-fns';
 
 interface Props {
   step: StepExecutionDetail | null;
@@ -19,10 +20,14 @@ export default function StepDetailPanel({ step, waitToken, onClose, onResumeWait
 
   if (!step) return null;
 
+  const hasRetryHistory = (step.retryAttempts?.length ?? 0) > 0
+  const allRetriesFailed = hasRetryHistory && step.retryAttempts!.every(() => true) // all are failures by definition
+
   const tabs = [
     { id: 'overview', label: 'Overview' },
     { id: 'input', label: 'Input' },
     { id: 'output', label: 'Output' },
+    ...(hasRetryHistory ? [{ id: 'retries', label: `Retries (${step.retryAttempts!.length})` }] : []),
     ...(step.httpCallLog ? [{ id: 'http', label: 'HTTP Log' }] : []),
     { id: 'config', label: 'Config' },
   ] as const;
@@ -148,6 +153,75 @@ export default function StepDetailPanel({ step, waitToken, onClose, onResumeWait
             {step.output && typeof step.output === 'object' && step.output !== null && Object.keys(step.output as object).length > 0
               ? <JsonViewer data={step.output} />
               : <Empty label="No output data recorded" />}
+          </div>
+        )}
+
+        {activeTab === 'retries' && hasRetryHistory && (
+          <div className="space-y-1">
+            {/* All-failed warning */}
+            {step.status === 'FAILED' && (
+              <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5 mb-3">
+                <AlertTriangle size={13} className="text-red-500 shrink-0 mt-0.5" />
+                <p className="text-xs text-red-700">
+                  <strong>All {step.retryAttempts!.length} attempt{step.retryAttempts!.length !== 1 ? 's' : ''} failed.</strong>
+                  {' '}Step was dead-lettered and moved to the DLQ for manual review.
+                </p>
+              </div>
+            )}
+
+            {step.retryAttempts!.map((attempt, i) => {
+              const isLast = i === step.retryAttempts!.length - 1
+              return (
+                <div key={i} className="flex items-start gap-3">
+                  {/* Timeline */}
+                  <div className="flex flex-col items-center shrink-0">
+                    <div className="w-7 h-7 rounded-full bg-orange-100 border-2 border-orange-400 flex items-center justify-center text-xs font-bold text-orange-700 shrink-0">
+                      {attempt.attemptNumber}
+                    </div>
+                    {!isLast && <div className="w-px flex-1 bg-gray-200 mt-1 min-h-[16px]" />}
+                    {isLast && step.status === 'FAILED' && (
+                      <div className="w-px flex-1 bg-red-200 mt-1 min-h-[16px]" />
+                    )}
+                  </div>
+
+                  <div className={`flex-1 pb-3 ${i < step.retryAttempts!.length - 1 ? '' : ''}`}>
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <span className="text-xs font-semibold text-orange-700">
+                        Attempt {attempt.attemptNumber}
+                        {attempt.attemptNumber === 1 ? ' (initial)' : ` (retry ${attempt.attemptNumber - 1})`}
+                        {isLast && step.status === 'FAILED' ? ' → Dead-lettered' : ''}
+                      </span>
+                      {attempt.durationMs != null && attempt.durationMs > 0 && (
+                        <span className="flex items-center gap-1 text-[11px] text-gray-400">
+                          <Clock size={10} />{attempt.durationMs}ms
+                        </span>
+                      )}
+                      <span className="text-[11px] text-gray-400 ml-auto">
+                        {formatDistanceToNow(new Date(attempt.failedAt), { addSuffix: true })}
+                      </span>
+                    </div>
+                    <div className="flex items-start gap-1.5 bg-red-50 border border-red-100 rounded-lg px-2.5 py-2">
+                      <XCircle size={11} className="text-red-400 shrink-0 mt-0.5" />
+                      <span className="text-xs text-red-700 font-mono leading-relaxed break-all">
+                        {attempt.errorMessage}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+
+            {/* DLQ badge at the bottom */}
+            {step.status === 'FAILED' && (
+              <div className="flex items-center gap-2 pt-1 pl-10">
+                <div className="w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center shrink-0">
+                  <AlertTriangle size={11} className="text-white" />
+                </div>
+                <span className="text-xs font-semibold text-gray-600">
+                  Moved to Dead Letter Queue
+                </span>
+              </div>
+            )}
           </div>
         )}
 

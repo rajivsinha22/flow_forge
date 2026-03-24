@@ -16,14 +16,23 @@ public class ReplayAttempt {
 
     private LocalDateTime replayedAt;
 
+    /**
+     * True when this replay was triggered with a manually modified execution context
+     * (i.e. the user edited variables/step outputs before clicking "Edit Context & Replay").
+     * Allows audit trail to distinguish context-patched retries from standard replays.
+     */
+    private boolean contextWasModified;
+
     public ReplayAttempt() {
     }
 
-    public ReplayAttempt(String replayedBy, String result, String errorMessage, LocalDateTime replayedAt) {
+    public ReplayAttempt(String replayedBy, String result, String errorMessage,
+                         LocalDateTime replayedAt, boolean contextWasModified) {
         this.replayedBy = replayedBy;
         this.result = result;
         this.errorMessage = errorMessage;
         this.replayedAt = replayedAt;
+        this.contextWasModified = contextWasModified;
     }
 
     public String getReplayedBy() {
@@ -58,6 +67,14 @@ public class ReplayAttempt {
         this.replayedAt = replayedAt;
     }
 
+    public boolean isContextWasModified() {
+        return contextWasModified;
+    }
+
+    public void setContextWasModified(boolean contextWasModified) {
+        this.contextWasModified = contextWasModified;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -66,7 +83,8 @@ public class ReplayAttempt {
         return Objects.equals(replayedBy, that.replayedBy) &&
                 Objects.equals(result, that.result) &&
                 Objects.equals(errorMessage, that.errorMessage) &&
-                Objects.equals(replayedAt, that.replayedAt);
+                Objects.equals(replayedAt, that.replayedAt) &&
+                contextWasModified == that.contextWasModified;
     }
 
     @Override
@@ -93,6 +111,7 @@ public class ReplayAttempt {
         private String result;
         private String errorMessage;
         private LocalDateTime replayedAt;
+        private boolean contextWasModified;
 
         public Builder replayedBy(String replayedBy) {
             this.replayedBy = replayedBy;
@@ -114,8 +133,13 @@ public class ReplayAttempt {
             return this;
         }
 
+        public Builder contextWasModified(boolean contextWasModified) {
+            this.contextWasModified = contextWasModified;
+            return this;
+        }
+
         public ReplayAttempt build() {
-            return new ReplayAttempt(replayedBy, result, errorMessage, replayedAt);
+            return new ReplayAttempt(replayedBy, result, errorMessage, replayedAt, contextWasModified);
         }
     }
 }

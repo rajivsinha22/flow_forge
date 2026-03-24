@@ -5,8 +5,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
+import com.flowforge.execution.model.StepDef;
+import com.flowforge.execution.model.StepExecution;
+import com.flowforge.execution.model.StepRetryAttempt;
+
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Component
@@ -62,14 +68,53 @@ public class ExecutionEventPublisher {
         publish(executionId, event);
     }
 
-    public void publishStepDeadLettered(String executionId, String stepId, String dlqMessageId) {
+    /**
+     * Publish a {@code STEP_DEAD_LETTERED} event carrying the full retry trail
+     * and step metadata so the integration service can create a rich DLQ message
+     * without needing a separate call back to the execution engine.
+     *
+     * @param executionId     Workflow execution ID
+     * @param stepId          Step that was dead-lettered
+     * @param dlqMessageId    Pre-allocated DLQ message ID
+     * @param stepExecution   The final StepExecution record (carries retryAttempts list)
+     * @param stepDef         The step definition (name, type, config)
+     * @param contextSnapshot Execution context at the point of failure (for replay)
+     */
+    public void publishStepDeadLettered(String executionId, String stepId, String dlqMessageId,
+                                        StepExecution stepExecution, StepDef stepDef,
+                                        Map<String, Object> contextSnapshot) {
         Map<String, Object> event = new HashMap<>();
         event.put("type", "STEP_DEAD_LETTERED");
         event.put("executionId", executionId);
         event.put("stepId", stepId);
         event.put("dlqMessageId", dlqMessageId);
+        event.put("stepName", stepDef != null ? stepDef.getName() : stepId);
+        event.put("stepType", stepDef != null ? stepDef.getType() : null);
+        event.put("stepConfig", stepDef != null ? stepDef.getConfig() : null);
+        event.put("failureReason", stepExecution != null ? stepExecution.getErrorMessage() : null);
+        event.put("executionContext", contextSnapshot);
+        event.put("retryAttempts", serializeRetryAttempts(
+                stepExecution != null ? stepExecution.getRetryAttempts() : null));
         event.put("timestamp", Instant.now().toString());
         publish(executionId, event);
+    }
+
+    /**
+     * Convert {@link StepRetryAttempt} objects to plain maps so they
+     * serialize cleanly via Jackson over Kafka.
+     */
+    private List<Map<String, Object>> serializeRetryAttempts(List<StepRetryAttempt> attempts) {
+        if (attempts == null || attempts.isEmpty()) return new ArrayList<>();
+        List<Map<String, Object>> result = new ArrayList<>(attempts.size());
+        for (StepRetryAttempt a : attempts) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("attemptNumber", a.getAttemptNumber());
+            m.put("errorMessage", a.getErrorMessage());
+            m.put("failedAt", a.getFailedAt() != null ? a.getFailedAt().toString() : null);
+            m.put("durationMs", a.getDurationMs());
+            result.add(m);
+        }
+        return result;
     }
 
     private void publish(String key, Map<String, Object> event) {

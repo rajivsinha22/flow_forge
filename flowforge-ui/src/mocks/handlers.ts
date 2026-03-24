@@ -337,9 +337,43 @@ export function setupMockHandlers(axiosInstance: AxiosInstance) {
     return msg ? ok(msg) : notFound()
   })
 
-  mock.onPost(new RegExp('/dlq/.*/replay')).reply(ok(null, 'Replay queued'))
-  mock.onPost('/dlq/replay-batch').reply(ok({ replayed: DUMMY_DLQ.filter(d => d.status === 'PENDING').length }, 'Batch replay started'))
-  mock.onDelete(new RegExp('/dlq/.*')).reply(ok(null, 'DLQ message discarded'))
+  mock.onPost(new RegExp('/dlq/.*/replay')).reply((config) => {
+    const id = config.url!.split('/')[2]
+    const msg = DUMMY_DLQ.find(d => d.id === id)
+    if (!msg) return notFound()
+    const body = config.data ? JSON.parse(config.data) : {}
+    const contextWasModified = !!body.executionContext
+    const updated = {
+      ...msg,
+      status: 'REPLAYING',
+      retryCount: (msg as any).retryCount + 1,
+      updatedAt: new Date().toISOString(),
+      replayHistory: [
+        ...((msg as any).replayHistory ?? []),
+        {
+          replayedBy: 'demo-user',
+          result: 'SUCCESS',
+          replayedAt: new Date().toISOString(),
+          contextWasModified,
+        },
+      ],
+    }
+    return ok(updated)
+  })
+  mock.onPost('/dlq/replay-batch').reply(() => {
+    const pending = DUMMY_DLQ.filter(d => d.status === 'PENDING')
+    const messages = pending.map(m => ({
+      ...m, status: 'REPLAYING',
+      replayHistory: [...((m as any).replayHistory ?? []), { replayedBy: 'batch', result: 'SUCCESS', replayedAt: new Date().toISOString(), contextWasModified: false }],
+    }))
+    return ok({ total: pending.length, succeeded: pending.length, failed: 0, messages })
+  })
+  mock.onDelete(new RegExp('/dlq/.*')).reply((config) => {
+    const id = config.url!.split('/').pop()!
+    const msg = DUMMY_DLQ.find(d => d.id === id)
+    if (!msg) return notFound()
+    return ok({ ...msg, status: 'DISCARDED', updatedAt: new Date().toISOString() })
+  })
 
   // ── TRIGGERS ───────────────────────────────────────────────────────────────
   mock.onGet('/triggers').reply((config) => {

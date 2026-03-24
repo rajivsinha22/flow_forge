@@ -17,6 +17,8 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -171,6 +173,20 @@ public class KafkaTriggerConsumer {
                 dlqMessage.setExecutionContext(objectMapper.convertValue(event.get("executionContext"), Map.class));
             } catch (Exception e) {
                 log.warn("Could not parse executionContext from dead-letter event");
+            }
+        }
+
+        // Parse per-attempt retry history emitted by the execution engine
+        if (event.has("retryAttempts") && event.get("retryAttempts").isArray()) {
+            try {
+                List<Map<String, Object>> retryAttempts = objectMapper.convertValue(
+                        event.get("retryAttempts"),
+                        new TypeReference<List<Map<String, Object>>>() {});
+                dlqMessage.setRetryAttempts(retryAttempts);
+                log.debug("Stored {} retry attempt(s) on DLQ message for step {}",
+                        retryAttempts.size(), dlqMessage.getStepId());
+            } catch (Exception e) {
+                log.warn("Could not parse retryAttempts from dead-letter event: {}", e.getMessage());
             }
         }
 
