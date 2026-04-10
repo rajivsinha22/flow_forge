@@ -296,8 +296,8 @@ const Dashboard: React.FC = () => {
                 <Code2 size={16} className="text-white" />
               </div>
               <div>
-                <p className="text-sm font-medium text-teal-900">Get SDK</p>
-                <p className="text-xs text-teal-500">Java, TS, Python, Go</p>
+                <p className="text-sm font-medium text-teal-900">Developer Portal</p>
+                <p className="text-xs text-teal-500">API docs, keys & sandbox</p>
               </div>
               <ArrowRight size={14} className="ml-auto text-teal-400 group-hover:translate-x-0.5 transition-transform" />
             </Link>
