@@ -29,6 +29,9 @@ public class RouteConfig {
     @Value("${services.websocket}")
     private String websocketServiceUrl;
 
+    @Value("${services.billing}")
+    private String billingServiceUrl;
+
     public RouteConfig(JwtAuthFilter jwtAuthFilter) {
         this.jwtAuthFilter = jwtAuthFilter;
     }
@@ -114,6 +117,18 @@ public class RouteConfig {
                 .route("websocket-routes", r -> r
                         .path("/ws/**")
                         .uri(websocketServiceUrl))
+
+                // ── BILLING SERVICE ────────────────────────────────────────────────────
+                // Stripe webhook — no JWT required (verified by Stripe signature)
+                .route("billing-stripe-webhook", r -> r
+                        .path("/api/v1/billing/stripe/webhook")
+                        .uri(billingServiceUrl))
+
+                // All other billing routes — JWT required
+                .route("billing-routes", r -> r
+                        .path("/api/v1/billing/**")
+                        .filters(f -> f.filter(jwtAuthFilter.apply(new JwtAuthFilter.Config())))
+                        .uri(billingServiceUrl))
 
                 .build();
     }

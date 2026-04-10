@@ -93,9 +93,13 @@ public class ExecutionController {
     /**
      * POST /api/v1/workflows/{workflowId}/trigger
      * Trigger a workflow execution.
+     *
+     * <p>Response mapping: if the workflow sets {@code responseBody}, {@code responseStatus},
+     * or {@code contentType} in the execution context variables, the trigger response
+     * will use those values instead of the default 201 + ApiResponse wrapper.</p>
      */
     @PostMapping("/workflows/{workflowId}/trigger")
-    public ResponseEntity<ApiResponse<WorkflowExecution>> triggerExecution(
+    public ResponseEntity<?> triggerExecution(
             @RequestHeader("X-Client-Id") String clientId,
             @RequestHeader(value = "X-User-Id", defaultValue = "system") String userId,
             @PathVariable String workflowId,
@@ -116,6 +120,41 @@ public class ExecutionController {
         WorkflowExecution execution = orchestrator.startExecution(
                 clientId, workflowId, input, userId, triggerType, modelRecordId);
 
+        // ── Context-based response mapping ──────────────────────────────────
+        // If the workflow set responseBody / responseStatus / contentType in
+        // execution context, use those to build a custom HTTP response.
+        java.util.Map<String, Object> execCtx = execution.getExecutionContext();
+        java.util.Map<String, Object> responseMapping = execCtx != null
+                ? (java.util.Map<String, Object>) execCtx.get("responseMapping")
+                : null;
+
+        if (responseMapping != null && responseMapping.containsKey("responseBody")) {
+            // Determine HTTP status
+            int statusCode = 200;
+            Object rawStatus = responseMapping.get("responseStatus");
+            if (rawStatus instanceof Number) {
+                statusCode = ((Number) rawStatus).intValue();
+            } else if (rawStatus instanceof String) {
+                try { statusCode = Integer.parseInt((String) rawStatus); } catch (NumberFormatException ignored) { }
+            }
+
+            // Determine content type
+            String contentType = "application/json";
+            Object rawContentType = responseMapping.get("contentType");
+            if (rawContentType instanceof String && !((String) rawContentType).isBlank()) {
+                contentType = (String) rawContentType;
+            }
+
+            Object body = responseMapping.get("responseBody");
+
+            return ResponseEntity
+                    .status(HttpStatus.valueOf(statusCode))
+                    .header("Content-Type", contentType)
+                    .header("X-Execution-Id", execution.getId())
+                    .body(body);
+        }
+
+        // Default: standard ApiResponse wrapper
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(execution));
     }
 

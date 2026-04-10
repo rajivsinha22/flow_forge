@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   Plus, Search, Database, Trash2, Pencil, Tag, Copy, AlertCircle,
-  CheckCircle2, ChevronRight, FileJson, Layers, ArrowUpRight, FolderOpen
+  CheckCircle2, ChevronRight, FileJson, Layers, ArrowUpRight, FolderOpen, AlertTriangle
 } from 'lucide-react'
+import { usePlanEnforcement } from '../hooks/usePlanEnforcement'
+import { useBillingStore } from '../store/billingStore'
 import {
   listModels, createModel, updateModel, deleteModel,
   type DataModel, type DataModelRequest, MOCK_MODELS
@@ -21,6 +24,11 @@ const isDummy = import.meta.env.VITE_DUMMY_MODE === 'true'
 // ─────────────────────────────────────────────────────────────────────────────
 
 const Models: React.FC = () => {
+  const modelLimit = usePlanEnforcement('models')
+  const { fetchUsage } = useBillingStore()
+
+  useEffect(() => { fetchUsage() }, [fetchUsage])
+
   const [models, setModels] = useState<DataModel[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -148,12 +156,35 @@ const Models: React.FC = () => {
           </p>
         </div>
         <button
-          onClick={() => setEditorModel(null)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors"
+          onClick={() => !modelLimit.isAtLimit && setEditorModel(null)}
+          disabled={modelLimit.isAtLimit}
+          className={`flex items-center gap-2 px-4 py-2.5 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors ${
+            modelLimit.isAtLimit
+              ? 'bg-gray-400 cursor-not-allowed opacity-50'
+              : 'bg-blue-600 hover:bg-blue-700'
+          }`}
         >
-          <Plus size={15} /> New Model
+          <Plus size={15} /> {modelLimit.isAtLimit ? `${modelLimit.used}/${modelLimit.limit} Models` : 'New Model'}
         </button>
       </div>
+
+      {modelLimit.isAtLimit && (
+        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-5 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm text-red-700">
+            <AlertTriangle size={16} />
+            <span>Model limit reached ({modelLimit.used}/{modelLimit.limit}). Upgrade your plan to create more.</span>
+          </div>
+          <Link to="/billing" className="text-xs font-medium text-red-700 bg-red-100 px-3 py-1 rounded-lg hover:bg-red-200">
+            Upgrade
+          </Link>
+        </div>
+      )}
+      {modelLimit.isNearLimit && !modelLimit.isAtLimit && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 mb-5 flex items-center gap-2 text-sm text-yellow-700">
+          <AlertTriangle size={16} />
+          <span>Approaching model limit ({modelLimit.used}/{modelLimit.limit}).</span>
+        </div>
+      )}
 
       {/* Flash messages */}
       {successMsg && (

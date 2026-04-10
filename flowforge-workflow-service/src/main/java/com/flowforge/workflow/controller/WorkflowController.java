@@ -67,15 +67,7 @@ public class WorkflowController {
                         workflow.getInputModelId(), workflow.getId(), e.getMessage());
             }
         }
-        if (workflow.getOutputModelId() != null) {
-            try {
-                workflow.setResolvedOutputSchemaJson(
-                        dataModelService.getById(clientId, workflow.getOutputModelId()).getSchemaJson());
-            } catch (Exception e) {
-                log.warn("Could not resolve outputModelId={} for workflow={}: {}",
-                        workflow.getOutputModelId(), workflow.getId(), e.getMessage());
-            }
-        }
+        // Output schema resolution removed — response mapping is now context-based
         return workflow;
     }
 

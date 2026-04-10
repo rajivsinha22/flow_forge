@@ -29,4 +29,6 @@ public interface WorkflowDefinitionRepository extends MongoRepository<WorkflowDe
     Optional<WorkflowDefinition> findByClientIdAndNameAndVersion(String clientId, String name, int version);
 
     boolean existsByClientIdAndNameAndVersion(String clientId, String name, int version);
+
+    long countByClientId(String clientId);
 }

@@ -19,6 +19,7 @@ public class TenantFilter extends OncePerRequestFilter {
     private static final Logger log = LoggerFactory.getLogger(TenantFilter.class);
 
     public static final String CLIENT_ID_HEADER = "X-Client-Id";
+    public static final String CLIENT_PLAN_HEADER = "X-Client-Plan";
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
@@ -30,6 +31,11 @@ public class TenantFilter extends OncePerRequestFilter {
             if (StringUtils.hasText(clientId)) {
                 TenantContext.setClientId(clientId);
                 log.debug("Set tenant context for clientId={}", clientId);
+            }
+            String plan = request.getHeader(CLIENT_PLAN_HEADER);
+            if (StringUtils.hasText(plan)) {
+                TenantContext.setPlan(plan);
+                log.debug("Set tenant plan={}", plan);
             }
             filterChain.doFilter(request, response);
         } finally {

@@ -9,9 +9,9 @@ import {
   DUMMY_WAIT_TOKENS, DUMMY_FAILED_WORKFLOWS, DUMMY_TRIGGERS,
   DUMMY_WEBHOOK_DELIVERIES, DUMMY_API_KEYS, DUMMY_AUDIT_LOGS,
   DUMMY_RATE_LIMITS, DUMMY_ANALYTICS_SUMMARY, DUMMY_EXECUTION_TREND,
-  DUMMY_ENV_VARS, DUMMY_WORKFLOW_VERSIONS,
+  DUMMY_ENV_VARS, DUMMY_WORKFLOW_VERSIONS, DUMMY_MODEL_RECORDS,
+  DUMMY_SUBSCRIPTION, DUMMY_PLAN_USAGE, DUMMY_PAYMENT_EVENTS, DUMMY_INVOICES,
 } from './data'
-import { MOCK_MODEL_RECORDS } from '../api/modelRecords'
 
 // Wraps data in backend's ApiResponse envelope
 const ok = (data: unknown, message = 'OK') => [200, { success: true, data, message }]
@@ -426,7 +426,7 @@ export function setupMockHandlers(axiosInstance: AxiosInstance) {
   mock.onGet('/analytics/execution-trend').reply(ok(DUMMY_EXECUTION_TREND))
 
   // ── MODEL RECORDS ────────────────────────────────────────────────────────
-  let modelRecords = [...MOCK_MODEL_RECORDS]
+  let modelRecords = [...DUMMY_MODEL_RECORDS]
 
   mock.onGet('/model-records').reply((config) => {
     const { dataModelId } = config.params || {}
@@ -487,4 +487,13 @@ export function setupMockHandlers(axiosInstance: AxiosInstance) {
     modelRecords = modelRecords.filter((r: any) => r.id !== id)
     return ok(null)
   })
+
+  // ── BILLING ─────────────────────────────────────────────────────────────────
+  mock.onGet(/\/billing\/subscription$/).reply(200, { success: true, data: DUMMY_SUBSCRIPTION })
+  mock.onGet(/\/billing\/usage$/).reply(200, { success: true, data: DUMMY_PLAN_USAGE })
+  mock.onPost(/\/billing\/checkout$/).reply(200, { success: true, data: { url: 'https://checkout.stripe.com/mock-session' } })
+  mock.onPost(/\/billing\/change-plan$/).reply(200, { success: true, data: DUMMY_SUBSCRIPTION })
+  mock.onPost(/\/billing\/cancel$/).reply(200, { success: true, data: null, message: 'Subscription cancelled' })
+  mock.onGet(/\/billing\/payments$/).reply(200, { success: true, data: DUMMY_PAYMENT_EVENTS })
+  mock.onGet(/\/billing\/invoices$/).reply(200, { success: true, data: DUMMY_INVOICES })
 }

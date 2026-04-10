@@ -25,31 +25,12 @@ public class WorkflowDefinitionSnapshot {
     /** ID of the linked input DataModel (for reference) */
     private String inputModelId;
 
-    /** ID of the linked output DataModel (for reference) */
-    private String outputModelId;
-
     /**
      * Resolved JSON Schema Draft-07 string for input validation.
      * Populated by WorkflowDefinitionLoader from the workflow service response.
      * Null when no input model is bound.
      */
     private String resolvedInputSchemaJson;
-
-    /**
-     * Resolved JSON Schema Draft-07 string for output validation / documentation.
-     */
-    private String resolvedOutputSchemaJson;
-
-    /**
-     * Output mapping template: key → {{stepId.field}} expressions.
-     * Used to shape the final API response on workflow success.
-     */
-    private Map<String, Object> outputMapping;
-
-    /**
-     * Error handling configuration serialised from the workflow definition.
-     */
-    private Map<String, Object> errorHandlingConfig;
 
     /**
      * Data sync mode for linked input model records.
@@ -106,20 +87,8 @@ public class WorkflowDefinitionSnapshot {
     public String getInputModelId() { return inputModelId; }
     public void setInputModelId(String inputModelId) { this.inputModelId = inputModelId; }
 
-    public String getOutputModelId() { return outputModelId; }
-    public void setOutputModelId(String outputModelId) { this.outputModelId = outputModelId; }
-
     public String getResolvedInputSchemaJson() { return resolvedInputSchemaJson; }
     public void setResolvedInputSchemaJson(String resolvedInputSchemaJson) { this.resolvedInputSchemaJson = resolvedInputSchemaJson; }
-
-    public String getResolvedOutputSchemaJson() { return resolvedOutputSchemaJson; }
-    public void setResolvedOutputSchemaJson(String resolvedOutputSchemaJson) { this.resolvedOutputSchemaJson = resolvedOutputSchemaJson; }
-
-    public Map<String, Object> getOutputMapping() { return outputMapping; }
-    public void setOutputMapping(Map<String, Object> outputMapping) { this.outputMapping = outputMapping; }
-
-    public Map<String, Object> getErrorHandlingConfig() { return errorHandlingConfig; }
-    public void setErrorHandlingConfig(Map<String, Object> errorHandlingConfig) { this.errorHandlingConfig = errorHandlingConfig; }
 
     public String getDataSyncMode() { return dataSyncMode; }
     public void setDataSyncMode(String dataSyncMode) { this.dataSyncMode = dataSyncMode; }
@@ -165,11 +134,7 @@ public class WorkflowDefinitionSnapshot {
         private Map<String, String> variables;
         private List<StepDef> steps;
         private String inputModelId;
-        private String outputModelId;
         private String resolvedInputSchemaJson;
-        private String resolvedOutputSchemaJson;
-        private Map<String, Object> outputMapping;
-        private Map<String, Object> errorHandlingConfig;
         private String dataSyncMode;
 
         public Builder id(String id) { this.id = id; return this; }
@@ -182,22 +147,14 @@ public class WorkflowDefinitionSnapshot {
         public Builder variables(Map<String, String> variables) { this.variables = variables; return this; }
         public Builder steps(List<StepDef> steps) { this.steps = steps; return this; }
         public Builder inputModelId(String inputModelId) { this.inputModelId = inputModelId; return this; }
-        public Builder outputModelId(String outputModelId) { this.outputModelId = outputModelId; return this; }
         public Builder resolvedInputSchemaJson(String resolvedInputSchemaJson) { this.resolvedInputSchemaJson = resolvedInputSchemaJson; return this; }
-        public Builder resolvedOutputSchemaJson(String resolvedOutputSchemaJson) { this.resolvedOutputSchemaJson = resolvedOutputSchemaJson; return this; }
-        public Builder outputMapping(Map<String, Object> outputMapping) { this.outputMapping = outputMapping; return this; }
-        public Builder errorHandlingConfig(Map<String, Object> errorHandlingConfig) { this.errorHandlingConfig = errorHandlingConfig; return this; }
         public Builder dataSyncMode(String dataSyncMode) { this.dataSyncMode = dataSyncMode; return this; }
 
         public WorkflowDefinitionSnapshot build() {
             WorkflowDefinitionSnapshot s = new WorkflowDefinitionSnapshot(id, clientId, name, displayName,
                     version, triggerType, inputSchema, variables, steps);
             s.inputModelId = this.inputModelId;
-            s.outputModelId = this.outputModelId;
             s.resolvedInputSchemaJson = this.resolvedInputSchemaJson;
-            s.resolvedOutputSchemaJson = this.resolvedOutputSchemaJson;
-            s.outputMapping = this.outputMapping;
-            s.errorHandlingConfig = this.errorHandlingConfig;
             s.dataSyncMode = this.dataSyncMode;
             return s;
         }

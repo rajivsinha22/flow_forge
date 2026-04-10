@@ -12,6 +12,7 @@ import {
   Users,
   Code2,
   Settings,
+  CreditCard,
   ChevronDown,
   ChevronRight,
   Sparkles,
@@ -51,6 +52,7 @@ const navItems: NavItem[] = [
   { label: 'Team', to: '/team', icon: <Users size={18} /> },
   { label: 'Developer', to: '/developer', icon: <Code2 size={18} /> },
   { label: 'Settings', to: '/settings', icon: <Settings size={18} /> },
+  { label: 'Billing', to: '/billing', icon: <CreditCard size={18} /> },
 ]
 
 interface NavItemProps {

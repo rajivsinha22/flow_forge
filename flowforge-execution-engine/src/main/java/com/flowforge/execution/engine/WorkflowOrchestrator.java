@@ -1,5 +1,9 @@
 package com.flowforge.execution.engine;
 
+import com.flowforge.common.exception.PlanLimitExceededException;
+import com.flowforge.common.model.Client;
+import com.flowforge.common.model.PlanLimits;
+import com.flowforge.execution.config.TenantContext;
 import com.flowforge.execution.executor.StepExecutor;
 import com.flowforge.execution.executor.SubWorkflowExecutor;
 import com.flowforge.execution.kafka.ExecutionEventPublisher;
@@ -112,6 +116,16 @@ public class WorkflowOrchestrator {
     private WorkflowExecution executeWorkflow(String clientId, WorkflowDefinitionSnapshot definition,
                                                Map<String, Object> input, String triggeredBy,
                                                String triggerType, String modelRecordId) {
+        // Plan enforcement — check monthly execution count
+        String planHeader = TenantContext.getPlan();
+        Client.Plan plan = Client.Plan.valueOf(planHeader != null ? planHeader : "FREE");
+        PlanLimits limits = PlanLimits.forPlan(plan);
+        LocalDateTime startOfMonth = LocalDateTime.now().withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+        long monthlyCount = executionRepository.countByClientIdAndStartedAtAfter(clientId, startOfMonth);
+        if (PlanLimits.isExceeded(limits.getMaxExecutionsPerMonth(), monthlyCount)) {
+            throw new PlanLimitExceededException(plan, "executions", monthlyCount, limits.getMaxExecutionsPerMonth());
+        }
+
         if (definition.getSteps() == null || definition.getSteps().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Workflow '" + definition.getName() + "' has no steps to execute");
@@ -125,19 +139,6 @@ public class WorkflowOrchestrator {
 
             if (!validationErrors.isEmpty()) {
                 log.warn("Input validation failed for workflow '{}': {}", definition.getName(), validationErrors);
-
-                // Determine behaviour from errorHandlingConfig
-                Map<String, Object> ehc = definition.getErrorHandlingConfig();
-                String mode = ehc != null ? (String) ehc.getOrDefault("mode", "FAIL_FAST") : "FAIL_FAST";
-
-                if ("CUSTOM_RESPONSE".equals(mode)) {
-                    // Build a synthetic failed execution record so the caller can inspect errors
-                    int statusCode = ehc.containsKey("customStatusCode")
-                            ? ((Number) ehc.get("customStatusCode")).intValue() : 422;
-                    throw new ResponseStatusException(HttpStatus.valueOf(statusCode),
-                            "Input validation failed: " + String.join("; ", validationErrors));
-                }
-                // FAIL_FAST (default) or CONTINUE both reject invalid input at the gate
                 throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
                         "Input validation failed: " + String.join("; ", validationErrors));
             }
@@ -475,15 +476,33 @@ public class WorkflowOrchestrator {
             if (context.getStepOutputs() != null) finalContext.put("stepOutputs", context.getStepOutputs());
             if (context.getModelData() != null) finalContext.put("modelData", context.getModelData());
 
-            // ── Apply output mapping when workflow succeeds ──────────────────
+            // ── Context-based response mapping ──────────────────────────────
+            // Steps can set responseBody, responseStatus, and contentType in
+            // the execution context (via variables or step outputs) to control
+            // the HTTP response returned to the caller.
             if ("SUCCESS".equals(status)) {
-                WorkflowDefinitionSnapshot def = execution.getWorkflowDefinition();
-                if (def != null && def.getOutputMapping() != null && !def.getOutputMapping().isEmpty()) {
-                    Map<String, Object> mappedOutput = schemaValidationService.applyOutputMapping(
-                            def.getOutputMapping(), context.getStepOutputs() != null
-                                    ? context.getStepOutputs() : new HashMap<>());
-                    finalContext.put("output", mappedOutput);
-                    execution.setOutput(mappedOutput);
+                Map<String, Object> vars = context.getVariables();
+
+                Object responseBody = vars != null ? vars.get("responseBody") : null;
+                Object responseStatus = vars != null ? vars.get("responseStatus") : null;
+                Object contentType = vars != null ? vars.get("contentType") : null;
+
+                Map<String, Object> responseMapping = new HashMap<>();
+                if (responseBody != null) {
+                    responseMapping.put("responseBody", responseBody);
+                }
+                if (responseStatus != null) {
+                    responseMapping.put("responseStatus", responseStatus);
+                }
+                if (contentType != null) {
+                    responseMapping.put("contentType", contentType);
+                }
+
+                if (!responseMapping.isEmpty()) {
+                    finalContext.put("responseMapping", responseMapping);
+                    execution.setOutput(responseMapping);
+                    log.debug("Response mapping applied for execution id={}: status={}, contentType={}",
+                            execution.getId(), responseStatus, contentType);
                 }
             }
 

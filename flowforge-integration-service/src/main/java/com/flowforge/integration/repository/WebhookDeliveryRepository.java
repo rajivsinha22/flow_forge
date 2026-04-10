@@ -21,4 +21,6 @@ public interface WebhookDeliveryRepository extends MongoRepository<WebhookDelive
     long countByClientIdAndStatus(String clientId, String status);
 
     List<WebhookDelivery> findByStatusAndNextRetryAtBefore(String status, LocalDateTime now);
+
+    long countByClientIdAndCreatedAtAfter(String clientId, LocalDateTime after);
 }

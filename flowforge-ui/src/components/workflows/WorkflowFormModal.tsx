@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import {
   X, Clock, Globe, Radio, ChevronRight,
-  AlertTriangle, CheckCircle2, Sparkles, Database,
-  ArrowRight, ShieldCheck, RefreshCw,
+  CheckCircle2, Sparkles,
+  ShieldCheck, RefreshCw,
 } from 'lucide-react'
 import WorkflowSchemaSettings, {
   type WorkflowSchemaConfig,
@@ -75,9 +75,9 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode; description: string
   },
   {
     id: 'schema',
-    label: 'Schema & Errors',
+    label: 'Schema & Response',
     icon: <ShieldCheck size={14} />,
-    description: 'Input validation, response mapping, error handling',
+    description: 'Input validation, data sync, response mapping',
   },
 ]
 
@@ -100,9 +100,6 @@ const WorkflowFormModal: React.FC<WorkflowFormModalProps> = ({
   const [kafkaTopic, setKafkaTopic] = useState(workflow?.kafkaTopic ?? '')
   const [schemaConfig, setSchemaConfig] = useState<WorkflowSchemaConfig>({
     inputModelId: workflow?.inputModelId,
-    outputModelId: workflow?.outputModelId,
-    outputMapping: workflow?.outputMapping as Record<string, string> | undefined,
-    errorHandlingConfig: workflow?.errorHandlingConfig,
     dataSyncMode: workflow?.dataSyncMode,
   })
 
@@ -151,11 +148,7 @@ const WorkflowFormModal: React.FC<WorkflowFormModalProps> = ({
 
   // ── Schema summary badges ──────────────────────────────────────────────────
 
-  const hasSchema =
-    schemaConfig.inputModelId || schemaConfig.outputModelId ||
-    (schemaConfig.outputMapping && Object.keys(schemaConfig.outputMapping).length > 0)
-
-  const errorMode = schemaConfig.errorHandlingConfig?.mode ?? 'FAIL_FAST'
+  const hasSchema = !!schemaConfig.inputModelId
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -387,7 +380,7 @@ const WorkflowFormModal: React.FC<WorkflowFormModalProps> = ({
                 >
                   <div className="flex items-center gap-2 text-sm text-gray-500 group-hover:text-blue-600">
                     <ShieldCheck size={15} />
-                    <span className="font-medium">Configure Schema & Error Handling</span>
+                    <span className="font-medium">Configure Schema & Response</span>
                     {hasSchema && (
                       <span className="text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded font-semibold">configured</span>
                     )}
@@ -419,16 +412,6 @@ const WorkflowFormModal: React.FC<WorkflowFormModalProps> = ({
                 <ShieldCheck size={10} /> Input validated
               </span>
             )}
-            {schemaConfig.outputModelId && (
-              <span className="flex items-center gap-1 text-[11px] bg-violet-100 text-violet-700 px-2 py-1 rounded-lg font-medium">
-                <Database size={10} /> Output schema
-              </span>
-            )}
-            {schemaConfig.outputMapping && Object.keys(schemaConfig.outputMapping).length > 0 && (
-              <span className="flex items-center gap-1 text-[11px] bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg font-medium">
-                <ArrowRight size={10} /> {Object.keys(schemaConfig.outputMapping).length} mappings
-              </span>
-            )}
             {schemaConfig.dataSyncMode && (
               <span className={`flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg font-medium ${
                 schemaConfig.dataSyncMode === 'WRITE'
@@ -436,15 +419,6 @@ const WorkflowFormModal: React.FC<WorkflowFormModalProps> = ({
                   : 'bg-cyan-100 text-cyan-700'
               }`}>
                 <RefreshCw size={10} /> {schemaConfig.dataSyncMode === 'WRITE' ? 'Write Sync' : 'Read Sync'}
-              </span>
-            )}
-            {errorMode !== 'FAIL_FAST' && (
-              <span className={`flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg font-medium ${
-                errorMode === 'CUSTOM_RESPONSE'
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'bg-amber-100 text-amber-700'
-              }`}>
-                <AlertTriangle size={10} /> {errorMode === 'CONTINUE' ? 'Continue on error' : 'Custom error response'}
               </span>
             )}
           </div>

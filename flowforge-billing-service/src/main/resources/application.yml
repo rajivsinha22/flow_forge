@@ -1,0 +1,41 @@
+server:
+  port: 8086
+
+spring:
+  application:
+    name: flowforge-billing-service
+
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/flowforge_billing
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+
+logging:
+  level:
+    com.flowforge: DEBUG
+    org.springframework.data.mongodb: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+app:
+  billing:
+    mock: true  # Set to false for real Stripe
+
+stripe:
+  api-key: ${STRIPE_SECRET_KEY:sk_test_placeholder}
+  webhook-secret: ${STRIPE_WEBHOOK_SECRET:whsec_placeholder}
+  prices:
+    pro: ${STRIPE_PRICE_PRO:price_pro_monthly}
+    enterprise: ${STRIPE_PRICE_ENTERPRISE:price_enterprise_monthly}

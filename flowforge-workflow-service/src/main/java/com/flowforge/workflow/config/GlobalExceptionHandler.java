@@ -1,5 +1,6 @@
 package com.flowforge.workflow.config;
 
+import com.flowforge.common.exception.PlanLimitExceededException;
 import com.flowforge.common.response.ApiResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +18,13 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    @ExceptionHandler(PlanLimitExceededException.class)
+    public ResponseEntity<ApiResponse<Void>> handlePlanLimit(PlanLimitExceededException ex) {
+        log.warn("Plan limit exceeded: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
 
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<ApiResponse<Void>> handleResponseStatusException(ResponseStatusException ex) {

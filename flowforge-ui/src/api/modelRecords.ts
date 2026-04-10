@@ -41,69 +41,8 @@ export const deleteModelRecord = async (id: string): Promise<void> => {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Mock data (dummy mode)
+// Mock data re-exported from mocks/data.ts (avoids circular: axios → handlers → modelRecords → axios)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const MOCK_MODEL_RECORDS: ModelRecord[] = [
-  {
-    id: 'mr-1',
-    clientId: 'client-1',
-    dataModelId: 'model-1',
-    name: 'Order #ORD-2026-0042',
-    data: {
-      orderId: 'ORD-2026-0042',
-      customerId: 'CUST-001',
-      amount: 149.99,
-      currency: 'USD',
-      items: [{ sku: 'SKU-A', qty: 2 }, { sku: 'SKU-B', qty: 1 }],
-    },
-    createdBy: 'admin',
-    createdAt: '2026-03-10T09:00:00',
-    updatedAt: '2026-03-10T09:00:00',
-  },
-  {
-    id: 'mr-2',
-    clientId: 'client-1',
-    dataModelId: 'model-1',
-    name: 'Order #ORD-2026-0099',
-    data: {
-      orderId: 'ORD-2026-0099',
-      customerId: 'CUST-007',
-      amount: 599.00,
-      currency: 'EUR',
-      items: [{ sku: 'SKU-X', qty: 5 }],
-    },
-    createdBy: 'admin',
-    createdAt: '2026-03-12T14:30:00',
-    updatedAt: '2026-03-15T11:00:00',
-  },
-  {
-    id: 'mr-3',
-    clientId: 'client-1',
-    dataModelId: 'model-2',
-    name: 'New User — jane@example.com',
-    data: {
-      email: 'jane@example.com',
-      name: 'Jane Doe',
-      phone: '+12025551234',
-      role: 'user',
-    },
-    createdBy: 'system',
-    createdAt: '2026-03-18T08:00:00',
-    updatedAt: '2026-03-18T08:00:00',
-  },
-  {
-    id: 'mr-4',
-    clientId: 'client-1',
-    dataModelId: 'model-2',
-    name: 'Admin — bob@example.com',
-    data: {
-      email: 'bob@example.com',
-      name: 'Bob Smith',
-      role: 'admin',
-    },
-    createdBy: 'admin',
-    createdAt: '2026-03-20T10:15:00',
-    updatedAt: '2026-03-22T16:45:00',
-  },
-]
+// Lazy re-export so consumers that only need mock records can import from here
+export { DUMMY_MODEL_RECORDS as MOCK_MODEL_RECORDS } from '../mocks/data'

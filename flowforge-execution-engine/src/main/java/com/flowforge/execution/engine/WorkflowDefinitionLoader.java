@@ -153,18 +153,6 @@ public class WorkflowDefinitionLoader {
             variables = (Map<String, String>) data.get("variables");
         }
 
-        // Error handling config (serialised as a Map from JSON)
-        Map<String, Object> errorHandlingConfig = null;
-        if (data.get("errorHandlingConfig") instanceof Map) {
-            errorHandlingConfig = (Map<String, Object>) data.get("errorHandlingConfig");
-        }
-
-        // Output mapping template
-        Map<String, Object> outputMapping = null;
-        if (data.get("outputMapping") instanceof Map) {
-            outputMapping = (Map<String, Object>) data.get("outputMapping");
-        }
-
         return WorkflowDefinitionSnapshot.builder()
                 .id((String) data.get("id"))
                 .clientId((String) data.get("clientId"))
@@ -176,11 +164,7 @@ public class WorkflowDefinitionLoader {
                 .variables(variables)
                 .steps(steps)
                 .inputModelId((String) data.get("inputModelId"))
-                .outputModelId((String) data.get("outputModelId"))
                 .resolvedInputSchemaJson((String) data.get("resolvedInputSchemaJson"))
-                .resolvedOutputSchemaJson((String) data.get("resolvedOutputSchemaJson"))
-                .outputMapping(outputMapping)
-                .errorHandlingConfig(errorHandlingConfig)
                 .dataSyncMode((String) data.get("dataSyncMode"))
                 .build();
     }

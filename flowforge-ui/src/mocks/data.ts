@@ -1,3 +1,5 @@
+import type { SubscriptionStatus, PlanUsage, PaymentEvent, Invoice } from '../types'
+
 // ─── DUMMY CLIENT / ORG ───────────────────────────────────────────────────────
 export const DUMMY_CLIENT = {
   id: 'client_acme_001',
@@ -796,3 +798,103 @@ export const DUMMY_WORKFLOW_VERSIONS: Record<string, Array<{
     { version: 1, status: 'DEPRECATED', createdBy: 'priya@acme.com', createdAt: '2025-01-15T12:00:00Z', publishedAt: '2025-01-15T12:30:00Z', changeNote: 'Initial fraud detection with ML scoring' },
   ],
 }
+
+// ─── MOCK MODEL RECORDS ─────────────────────────────────────────────────────
+// Moved here (from api/modelRecords.ts) to avoid circular dependency:
+// axios.ts → handlers.ts → modelRecords.ts → axios.ts
+export const DUMMY_MODEL_RECORDS = [
+  {
+    id: 'mr-1',
+    clientId: 'client-1',
+    dataModelId: 'model-1',
+    name: 'Order #ORD-2026-0042',
+    data: {
+      orderId: 'ORD-2026-0042',
+      customerId: 'CUST-001',
+      amount: 149.99,
+      currency: 'USD',
+      items: [{ sku: 'SKU-A', qty: 2 }, { sku: 'SKU-B', qty: 1 }],
+    },
+    createdBy: 'admin',
+    createdAt: '2026-03-10T09:00:00',
+    updatedAt: '2026-03-10T09:00:00',
+  },
+  {
+    id: 'mr-2',
+    clientId: 'client-1',
+    dataModelId: 'model-1',
+    name: 'Order #ORD-2026-0099',
+    data: {
+      orderId: 'ORD-2026-0099',
+      customerId: 'CUST-007',
+      amount: 599.00,
+      currency: 'EUR',
+      items: [{ sku: 'SKU-X', qty: 5 }],
+    },
+    createdBy: 'admin',
+    createdAt: '2026-03-12T14:30:00',
+    updatedAt: '2026-03-15T11:00:00',
+  },
+  {
+    id: 'mr-3',
+    clientId: 'client-1',
+    dataModelId: 'model-2',
+    name: 'New User — jane@example.com',
+    data: {
+      email: 'jane@example.com',
+      name: 'Jane Doe',
+      phone: '+12025551234',
+      role: 'user',
+    },
+    createdBy: 'system',
+    createdAt: '2026-03-18T08:00:00',
+    updatedAt: '2026-03-18T08:00:00',
+  },
+  {
+    id: 'mr-4',
+    clientId: 'client-1',
+    dataModelId: 'model-2',
+    name: 'Admin — bob@example.com',
+    data: {
+      email: 'bob@example.com',
+      name: 'Bob Smith',
+      role: 'admin',
+    },
+    createdBy: 'admin',
+    createdAt: '2026-03-20T10:15:00',
+    updatedAt: '2026-03-22T16:45:00',
+  },
+]
+
+// ─── BILLING MOCK DATA ──────────────────────────────────────────────────────
+
+export const DUMMY_SUBSCRIPTION: SubscriptionStatus = {
+  plan: 'PRO',
+  subscriptionStatus: 'active',
+  currentPeriodEnd: new Date(Date.now() + 25 * 86400000).toISOString(),
+  stripeCustomerId: 'cus_mock_12345',
+  subscriptionId: 'sub_mock_67890',
+}
+
+export const DUMMY_PLAN_USAGE: PlanUsage = {
+  plan: 'PRO',
+  workflows: { used: 8, limit: 25 },
+  models: { used: 12, limit: 50 },
+  executions: { used: 45200, limit: 100000 },
+  teamMembers: { used: 4, limit: 10 },
+  webhooks: { used: 340, limit: 10000 },
+}
+
+export const DUMMY_PAYMENT_EVENTS: PaymentEvent[] = [
+  { id: 'pe_001', eventType: 'invoice.paid', description: 'Pro Plan - Monthly', amount: 4900, currency: 'usd', status: 'succeeded', createdAt: new Date(Date.now() - 2 * 86400000).toISOString() },
+  { id: 'pe_002', eventType: 'invoice.paid', description: 'Pro Plan - Monthly', amount: 4900, currency: 'usd', status: 'succeeded', createdAt: new Date(Date.now() - 32 * 86400000).toISOString() },
+  { id: 'pe_003', eventType: 'invoice.paid', description: 'Pro Plan - Monthly', amount: 4900, currency: 'usd', status: 'succeeded', createdAt: new Date(Date.now() - 62 * 86400000).toISOString() },
+  { id: 'pe_004', eventType: 'charge.refunded', description: 'Partial refund - billing error', amount: 1500, currency: 'usd', status: 'refunded', createdAt: new Date(Date.now() - 45 * 86400000).toISOString() },
+  { id: 'pe_005', eventType: 'invoice.paid', description: 'Pro Plan - Monthly', amount: 4900, currency: 'usd', status: 'succeeded', createdAt: new Date(Date.now() - 92 * 86400000).toISOString() },
+]
+
+export const DUMMY_INVOICES: Invoice[] = [
+  { id: 'inv_001', number: 'FF-2026-0042', amount: 4900, currency: 'usd', status: 'paid', periodStart: new Date(Date.now() - 30 * 86400000).toISOString(), periodEnd: new Date(Date.now()).toISOString(), createdAt: new Date(Date.now() - 2 * 86400000).toISOString() },
+  { id: 'inv_002', number: 'FF-2026-0031', amount: 4900, currency: 'usd', status: 'paid', periodStart: new Date(Date.now() - 60 * 86400000).toISOString(), periodEnd: new Date(Date.now() - 30 * 86400000).toISOString(), createdAt: new Date(Date.now() - 32 * 86400000).toISOString() },
+  { id: 'inv_003', number: 'FF-2026-0020', amount: 4900, currency: 'usd', status: 'paid', periodStart: new Date(Date.now() - 90 * 86400000).toISOString(), periodEnd: new Date(Date.now() - 60 * 86400000).toISOString(), createdAt: new Date(Date.now() - 62 * 86400000).toISOString() },
+]

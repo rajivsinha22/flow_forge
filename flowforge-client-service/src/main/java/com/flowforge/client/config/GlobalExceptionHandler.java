@@ -1,5 +1,6 @@
 package com.flowforge.client.config;
 
+import com.flowforge.common.exception.PlanLimitExceededException;
 import com.flowforge.common.exception.ResourceNotFoundException;
 import com.flowforge.common.exception.UnauthorizedException;
 import com.flowforge.common.exception.WorkflowBaseException;
@@ -22,6 +23,13 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    @ExceptionHandler(PlanLimitExceededException.class)
+    public ResponseEntity<ApiErrorResponse> handlePlanLimit(PlanLimitExceededException ex) {
+        log.warn("Plan limit exceeded: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiErrorResponse.of(ex.getCode(), ex.getMessage()));
+    }
 
     @ExceptionHandler(WorkflowValidationException.class)
     public ResponseEntity<ApiErrorResponse> handleValidationException(WorkflowValidationException ex) {

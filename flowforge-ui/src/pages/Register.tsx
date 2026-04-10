@@ -3,11 +3,12 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Sparkles, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react'
 import { register } from '../api/auth'
 import { useAuthStore } from '../store/authStore'
+import { PLAN_META, PLAN_LIMITS, formatLimit, type Plan } from '../config/planLimits'
 
-const plans = [
-  { id: 'FREE', label: 'Free', price: '$0/mo', features: '3 workflows, 1K executions' },
-  { id: 'PRO', label: 'Pro', price: '$49/mo', features: 'Unlimited workflows, 100K executions' },
-  { id: 'ENTERPRISE', label: 'Enterprise', price: 'Custom', features: 'Dedicated infra, SLA guarantee' },
+const planOptions: Array<{ id: Plan; label: string; price: string; features: string }> = [
+  { id: 'FREE', label: PLAN_META.FREE.label, price: PLAN_META.FREE.price, features: `${formatLimit(PLAN_LIMITS.FREE.maxWorkflows)} workflows, ${formatLimit(PLAN_LIMITS.FREE.maxExecutionsPerMonth)} executions` },
+  { id: 'PRO', label: PLAN_META.PRO.label, price: PLAN_META.PRO.price, features: `${formatLimit(PLAN_LIMITS.PRO.maxWorkflows)} workflows, ${formatLimit(PLAN_LIMITS.PRO.maxExecutionsPerMonth)} executions` },
+  { id: 'ENTERPRISE', label: PLAN_META.ENTERPRISE.label, price: PLAN_META.ENTERPRISE.price, features: PLAN_META.ENTERPRISE.tagline },
 ]
 
 const Register: React.FC = () => {
@@ -183,7 +184,7 @@ const Register: React.FC = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Select Plan</label>
               <div className="grid grid-cols-3 gap-2">
-                {plans.map((plan) => (
+                {planOptions.map((plan) => (
                   <button
                     key={plan.id}
                     type="button"

@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react'
-import { UserPlus, Trash2, X, Shield, Users, Edit2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { UserPlus, Trash2, X, Shield, Users, Edit2, AlertTriangle } from 'lucide-react'
+import { usePlanEnforcement } from '../hooks/usePlanEnforcement'
+import { useBillingStore } from '../store/billingStore'
 import { listUsers, inviteUser, listRoles, createRole } from '../api/team'
 import type { TeamMember, Role } from '../types'
 import StatusBadge from '../components/shared/StatusBadge'
@@ -31,6 +34,11 @@ const ALL_PERMISSIONS = [
 ]
 
 const TeamManagement: React.FC = () => {
+  const memberLimit = usePlanEnforcement('teamMembers')
+  const { fetchUsage } = useBillingStore()
+
+  useEffect(() => { fetchUsage() }, [fetchUsage])
+
   const [activeTab, setActiveTab] = useState<'users' | 'roles'>('users')
   const [users, setUsers] = useState<TeamMember[]>([])
   const [roles, setRoles] = useState<Role[]>([])
@@ -106,8 +114,16 @@ const TeamManagement: React.FC = () => {
         </div>
         <div className="flex gap-2">
           {activeTab === 'users' && (
-            <button onClick={() => setShowInviteModal(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl">
-              <UserPlus size={16} /> Invite Member
+            <button
+              onClick={() => !memberLimit.isAtLimit && setShowInviteModal(true)}
+              disabled={memberLimit.isAtLimit}
+              className={`flex items-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-xl ${
+                memberLimit.isAtLimit
+                  ? 'bg-gray-400 cursor-not-allowed opacity-50'
+                  : 'bg-blue-600 hover:bg-blue-700'
+              }`}
+            >
+              <UserPlus size={16} /> {memberLimit.isAtLimit ? `${memberLimit.used}/${memberLimit.limit} Members` : 'Invite Member'}
             </button>
           )}
           {activeTab === 'roles' && (
@@ -131,6 +147,24 @@ const TeamManagement: React.FC = () => {
           </button>
         ))}
       </div>
+
+      {memberLimit.isAtLimit && activeTab === 'users' && (
+        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm text-red-700">
+            <AlertTriangle size={16} />
+            <span>Team member limit reached ({memberLimit.used}/{memberLimit.limit}). Upgrade your plan to invite more.</span>
+          </div>
+          <Link to="/billing" className="text-xs font-medium text-red-700 bg-red-100 px-3 py-1 rounded-lg hover:bg-red-200">
+            Upgrade
+          </Link>
+        </div>
+      )}
+      {memberLimit.isNearLimit && !memberLimit.isAtLimit && activeTab === 'users' && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 mb-6 flex items-center gap-2 text-sm text-yellow-700">
+          <AlertTriangle size={16} />
+          <span>Approaching team member limit ({memberLimit.used}/{memberLimit.limit}).</span>
+        </div>
+      )}
 
       {/* Users Tab */}
       {activeTab === 'users' && (

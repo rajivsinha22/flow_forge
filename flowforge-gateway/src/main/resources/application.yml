@@ -42,6 +42,7 @@ services:
   execution:   http://localhost:8083
   integration: http://localhost:8084
   websocket:   http://localhost:8085
+  billing:     http://localhost:8086
 
 logging:
   level:

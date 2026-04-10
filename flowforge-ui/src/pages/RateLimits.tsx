@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Save, Plus, Trash2, Gauge } from 'lucide-react'
+import { Save, Plus, Trash2, Gauge, SlidersHorizontal } from 'lucide-react'
 import { getRateLimits, updateRateLimit } from '../api/settings'
 import { useRateLimitStatus } from '../hooks/useRateLimitStatus'
 import type { RateLimit } from '../types'
@@ -75,7 +75,7 @@ const RateLimits: React.FC = () => {
   if (isLoading) return <div className="flex items-center justify-center min-h-screen"><Spinner size="lg" label="Loading rate limits..." /></div>
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
+    <div className="p-8 max-w-6xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Rate Limits</h1>
         <p className="text-gray-500 text-sm mt-1">Control execution throughput and concurrency</p>
@@ -127,7 +127,10 @@ const RateLimits: React.FC = () => {
 
       {/* Client-level limits */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-6">
-        <h2 className="font-semibold text-gray-900 mb-4">Client-Level Limits</h2>
+        <div className="flex items-center gap-2 mb-4">
+          <SlidersHorizontal size={18} className="text-blue-600" />
+          <h2 className="font-semibold text-gray-900">Client-Level Limits</h2>
+        </div>
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Max Requests / Minute</label>
@@ -218,29 +221,31 @@ const RateLimits: React.FC = () => {
 
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-50 bg-gray-50">
-              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Workflow</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Req / Min</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Max Concurrent</th>
-              <th className="text-right px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Actions</th>
+            <tr className="border-b border-gray-100 bg-gray-50">
+              <th className="text-left px-6 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Workflow</th>
+              <th className="text-left px-4 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Req / Min</th>
+              <th className="text-left px-4 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Max Concurrent</th>
+              <th className="text-right px-6 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
             {workflowLimits.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-6 py-8 text-center text-gray-400 text-sm">
-                  No per-workflow overrides configured
+                <td colSpan={4} className="px-6 py-14 text-center">
+                  <Gauge size={28} className="mx-auto text-gray-300 mb-3" />
+                  <p className="text-gray-400 font-medium">No per-workflow overrides</p>
+                  <p className="text-gray-300 text-xs mt-1">Click "Add Override" to set a workflow-specific rate limit.</p>
                 </td>
               </tr>
             ) : (
               workflowLimits.map((limit) => (
                 <tr key={limit.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-3.5">
-                    <span className="font-mono text-sm text-gray-800">{limit.workflowName}</span>
+                  <td className="px-6 py-4">
+                    <code className="font-mono text-xs text-gray-700">{limit.workflowName}</code>
                   </td>
-                  <td className="px-4 py-3.5 text-gray-700">{limit.maxRequestsPerMinute}/min</td>
-                  <td className="px-4 py-3.5 text-gray-700">{limit.maxConcurrentExecutions}</td>
-                  <td className="px-6 py-3.5 text-right">
+                  <td className="px-4 py-4 text-gray-700">{limit.maxRequestsPerMinute}/min</td>
+                  <td className="px-4 py-4 text-gray-700">{limit.maxConcurrentExecutions}</td>
+                  <td className="px-6 py-4 text-right">
                     <button
                       onClick={() => handleDeleteWorkflowLimit(limit.id)}
                       className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"

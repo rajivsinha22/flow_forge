@@ -24,6 +24,7 @@ import TeamManagement from './pages/TeamManagement'
 import DeveloperPortal from './pages/DeveloperPortal'
 import AuditLogs from './pages/AuditLogs'
 import Settings from './pages/Settings'
+import Billing from './pages/Billing'
 import Models from './pages/Models'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -68,6 +69,7 @@ function App() {
         <Route path="/developer" element={<DeveloperPortal />} />
         <Route path="/audit-logs" element={<AuditLogs />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/billing" element={<Billing />} />
         <Route path="/models" element={<Models />} />
       </Route>
 

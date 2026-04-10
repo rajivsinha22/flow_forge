@@ -6,6 +6,7 @@ import {
   RefreshCw, Code2, ArrowRight, Clock, CheckCircle2, Sparkles
 } from 'lucide-react'
 import { getAnalyticsSummary } from '../api/settings'
+import { useBillingStore } from '../store/billingStore'
 import type { AnalyticsSummary, Execution } from '../types'
 import MetricCard from '../components/shared/MetricCard'
 import StatusBadge from '../components/shared/StatusBadge'
@@ -40,6 +41,9 @@ const Dashboard: React.FC = () => {
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const navigate = useNavigate()
+  const { usage, fetchUsage } = useBillingStore()
+
+  useEffect(() => { fetchUsage() }, [fetchUsage])
 
   useEffect(() => {
     const fetchSummary = async () => {
@@ -75,7 +79,7 @@ const Dashboard: React.FC = () => {
         </div>
         <div className="flex gap-3">
           <Link
-            to="/workflows/new"
+            to="/workflows?new=true"
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors shadow-sm"
           >
             <Plus size={16} /> New Workflow
@@ -233,7 +237,7 @@ const Dashboard: React.FC = () => {
           <h2 className="font-semibold text-gray-900 mb-4">Quick Actions</h2>
           <div className="space-y-2.5">
             <Link
-              to="/workflows/new"
+              to="/workflows?new=true"
               className="flex items-center gap-3 px-4 py-3 bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-xl transition-colors group"
             >
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -302,6 +306,36 @@ const Dashboard: React.FC = () => {
               <ArrowRight size={14} className="ml-auto text-teal-400 group-hover:translate-x-0.5 transition-transform" />
             </Link>
           </div>
+
+          {/* Plan Usage Widget */}
+          {usage && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mt-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-semibold text-gray-900">Plan Usage</h2>
+                <Link to="/billing" className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1">
+                  Manage <ArrowRight size={10} />
+                </Link>
+              </div>
+              <div className="space-y-3">
+                {(['workflows', 'models', 'executions'] as const).map((key) => {
+                  const { used, limit } = usage[key]
+                  const pct = limit === -1 ? 0 : Math.min(Math.round((used / limit) * 100), 100)
+                  const color = pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-yellow-500' : 'bg-blue-500'
+                  return (
+                    <div key={key}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-gray-500 capitalize">{key}</span>
+                        <span className="text-xs text-gray-700 font-medium">{used.toLocaleString()} / {limit === -1 ? '\u221E' : limit.toLocaleString()}</span>
+                      </div>
+                      <div className="h-1.5 bg-gray-100 rounded-full">
+                        <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

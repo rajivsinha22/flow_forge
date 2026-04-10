@@ -47,24 +47,10 @@ public class WorkflowDefinition {
      */
     private String inputModelId;
 
-    /**
-     * ID of the {@link DataModel} that describes the expected success response shape.
-     * Used for documentation and optional output validation.
-     */
-    private String outputModelId;
-
-    /**
-     * Template that maps step outputs to the workflow's final API response body.
-     * Keys are response field names; values are {{stepId.field}} template expressions.
-     * Example: { "orderId": "{{step1.id}}", "status": "{{step2.status}}" }
-     */
-    private Map<String, Object> outputMapping;
-
-    /**
-     * Defines how the workflow reacts when execution fails or schema validation fails.
-     * Defaults to FAIL_FAST (return 422/500 immediately).
-     */
-    private ErrorHandlingConfig errorHandlingConfig;
+    // NOTE: outputModelId, outputMapping, and errorHandlingConfig have been removed.
+    // Response mapping is now handled via context keys: responseBody, responseStatus, contentType.
+    // These fields are kept as deprecated getters/setters for backward compatibility with
+    // existing MongoDB documents (old docs may still contain them), but they are no longer used.
 
     /**
      * Data sync mode for linked input model records. Only relevant when {@code inputModelId} is set.
@@ -84,12 +70,6 @@ public class WorkflowDefinition {
      */
     @org.springframework.data.annotation.Transient
     private String resolvedInputSchemaJson;
-
-    /**
-     * Resolved JSON Schema string for the output model (populated at read time, not persisted).
-     */
-    @org.springframework.data.annotation.Transient
-    private String resolvedOutputSchemaJson;
 
     // ── Version / audit fields ────────────────────────────────────────────────
 
@@ -152,14 +132,17 @@ public class WorkflowDefinition {
     public String getInputModelId() { return inputModelId; }
     public void setInputModelId(String inputModelId) { this.inputModelId = inputModelId; }
 
-    public String getOutputModelId() { return outputModelId; }
-    public void setOutputModelId(String outputModelId) { this.outputModelId = outputModelId; }
+    /** @deprecated No longer used — kept for backward compatibility with old MongoDB docs */
+    @Deprecated public String getOutputModelId() { return null; }
+    @Deprecated public void setOutputModelId(String outputModelId) { /* no-op */ }
 
-    public Map<String, Object> getOutputMapping() { return outputMapping; }
-    public void setOutputMapping(Map<String, Object> outputMapping) { this.outputMapping = outputMapping; }
+    /** @deprecated Response mapping is now context-based (responseBody/responseStatus/contentType) */
+    @Deprecated public Map<String, Object> getOutputMapping() { return null; }
+    @Deprecated public void setOutputMapping(Map<String, Object> outputMapping) { /* no-op */ }
 
-    public ErrorHandlingConfig getErrorHandlingConfig() { return errorHandlingConfig; }
-    public void setErrorHandlingConfig(ErrorHandlingConfig errorHandlingConfig) { this.errorHandlingConfig = errorHandlingConfig; }
+    /** @deprecated Error handling config is no longer configurable per workflow */
+    @Deprecated public ErrorHandlingConfig getErrorHandlingConfig() { return null; }
+    @Deprecated public void setErrorHandlingConfig(ErrorHandlingConfig errorHandlingConfig) { /* no-op */ }
 
     public String getDataSyncMode() { return dataSyncMode; }
     public void setDataSyncMode(String dataSyncMode) { this.dataSyncMode = dataSyncMode; }
@@ -167,8 +150,9 @@ public class WorkflowDefinition {
     public String getResolvedInputSchemaJson() { return resolvedInputSchemaJson; }
     public void setResolvedInputSchemaJson(String resolvedInputSchemaJson) { this.resolvedInputSchemaJson = resolvedInputSchemaJson; }
 
-    public String getResolvedOutputSchemaJson() { return resolvedOutputSchemaJson; }
-    public void setResolvedOutputSchemaJson(String resolvedOutputSchemaJson) { this.resolvedOutputSchemaJson = resolvedOutputSchemaJson; }
+    /** @deprecated Output schema resolution removed */
+    @Deprecated public String getResolvedOutputSchemaJson() { return null; }
+    @Deprecated public void setResolvedOutputSchemaJson(String s) { /* no-op */ }
 
     public String getPublishedBy() { return publishedBy; }
     public void setPublishedBy(String publishedBy) { this.publishedBy = publishedBy; }
@@ -255,9 +239,6 @@ public class WorkflowDefinition {
         private List<StepDef> steps;
         private List<EdgeDef> edges;
         private String inputModelId;
-        private String outputModelId;
-        private Map<String, Object> outputMapping;
-        private ErrorHandlingConfig errorHandlingConfig;
         private String dataSyncMode;
         private String publishedBy;
         private LocalDateTime publishedAt;
@@ -282,9 +263,6 @@ public class WorkflowDefinition {
         public Builder steps(List<StepDef> steps) { this.steps = steps; return this; }
         public Builder edges(List<EdgeDef> edges) { this.edges = edges; return this; }
         public Builder inputModelId(String inputModelId) { this.inputModelId = inputModelId; return this; }
-        public Builder outputModelId(String outputModelId) { this.outputModelId = outputModelId; return this; }
-        public Builder outputMapping(Map<String, Object> outputMapping) { this.outputMapping = outputMapping; return this; }
-        public Builder errorHandlingConfig(ErrorHandlingConfig errorHandlingConfig) { this.errorHandlingConfig = errorHandlingConfig; return this; }
         public Builder dataSyncMode(String dataSyncMode) { this.dataSyncMode = dataSyncMode; return this; }
         public Builder publishedBy(String publishedBy) { this.publishedBy = publishedBy; return this; }
         public Builder publishedAt(LocalDateTime publishedAt) { this.publishedAt = publishedAt; return this; }
@@ -311,9 +289,6 @@ public class WorkflowDefinition {
             w.steps = this.steps;
             w.edges = this.edges;
             w.inputModelId = this.inputModelId;
-            w.outputModelId = this.outputModelId;
-            w.outputMapping = this.outputMapping;
-            w.errorHandlingConfig = this.errorHandlingConfig;
             w.dataSyncMode = this.dataSyncMode;
             w.publishedBy = this.publishedBy;
             w.publishedAt = this.publishedAt;

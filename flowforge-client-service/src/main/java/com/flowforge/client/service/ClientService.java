@@ -11,6 +11,7 @@ import com.flowforge.common.exception.WorkflowValidationException;
 import com.flowforge.common.model.Client;
 import com.flowforge.common.model.ClientUser;
 import com.flowforge.common.model.EnvVariable;
+import com.flowforge.common.model.PlanLimits;
 import com.flowforge.common.model.Role;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -155,12 +156,8 @@ public class ClientService {
 
     public RateLimitConfig getRateLimits(String clientId) {
         Client client = getClient(clientId);
-        // Default rate limits based on plan
-        return switch (client.getPlan()) {
-            case FREE -> new RateLimitConfig(10, 20);
-            case PRO -> new RateLimitConfig(60, 100);
-            case ENTERPRISE -> new RateLimitConfig(600, 1000);
-        };
+        PlanLimits limits = PlanLimits.forPlan(client.getPlan());
+        return new RateLimitConfig(limits.getReqPerMinute(), limits.getBurstCapacity());
     }
 
     public RateLimitConfig updateRateLimits(String clientId, RateLimitConfig config) {

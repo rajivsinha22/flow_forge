@@ -19,4 +19,6 @@ public interface ClientUserRepository extends MongoRepository<ClientUser, String
     List<ClientUser> findByClientId(String clientId);
 
     Page<ClientUser> findByClientId(String clientId, Pageable pageable);
+
+    long countByClientId(String clientId);
 }

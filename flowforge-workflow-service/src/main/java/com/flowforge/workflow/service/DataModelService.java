@@ -3,6 +3,10 @@ package com.flowforge.workflow.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.flowforge.common.exception.PlanLimitExceededException;
+import com.flowforge.common.model.Client;
+import com.flowforge.common.model.PlanLimits;
+import com.flowforge.workflow.config.TenantContext;
 import com.flowforge.workflow.dto.DataModelRequest;
 import com.flowforge.workflow.model.DataModel;
 import com.flowforge.workflow.repository.DataModelRepository;
@@ -63,6 +67,15 @@ public class DataModelService {
 
     public DataModel create(String clientId, DataModelRequest request, String createdBy) {
         log.info("Creating DataModel '{}' for clientId={}", request.getName(), clientId);
+
+        // Plan enforcement — check model count
+        String planHeader = TenantContext.getPlan();
+        Client.Plan plan = Client.Plan.valueOf(planHeader != null ? planHeader : "FREE");
+        PlanLimits limits = PlanLimits.forPlan(plan);
+        long modelCount = dataModelRepository.countByClientId(clientId);
+        if (PlanLimits.isExceeded(limits.getMaxModels(), modelCount)) {
+            throw new PlanLimitExceededException(plan, "models", modelCount, limits.getMaxModels());
+        }
 
         if (dataModelRepository.existsByClientIdAndName(clientId, request.getName())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,

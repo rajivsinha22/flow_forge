@@ -20,14 +20,6 @@ export interface Workflow {
   variables: Record<string, string>
   // Schema / model bindings
   inputModelId?: string
-  outputModelId?: string
-  outputMapping?: Record<string, string>
-  errorHandlingConfig?: {
-    mode: 'FAIL_FAST' | 'CONTINUE' | 'CUSTOM_RESPONSE'
-    customStatusCode?: number
-    customBody?: Record<string, unknown>
-    notifyOnError?: boolean
-  }
   /** Data sync mode for linked input model records: "READ" or "WRITE". Only when inputModelId is set. */
   dataSyncMode?: 'READ' | 'WRITE'
   publishedAt?: string
@@ -317,6 +309,47 @@ export interface WaitToken {
   expiresAt?: string;
   createdAt: string;
   resumedAt?: string;
+}
+
+// ── Billing & Subscription ──────────────────────────────────────────────────
+
+export interface SubscriptionStatus {
+  plan: 'FREE' | 'PRO' | 'ENTERPRISE'
+  subscriptionStatus: 'active' | 'past_due' | 'canceled' | 'trialing' | 'incomplete' | 'none'
+  currentPeriodEnd?: string
+  stripeCustomerId?: string
+  subscriptionId?: string
+}
+
+export interface PlanUsage {
+  plan: 'FREE' | 'PRO' | 'ENTERPRISE'
+  workflows: { used: number; limit: number }
+  models: { used: number; limit: number }
+  executions: { used: number; limit: number }
+  teamMembers: { used: number; limit: number }
+  webhooks: { used: number; limit: number }
+}
+
+export interface PaymentEvent {
+  id: string
+  eventType: string
+  description: string
+  amount: number
+  currency: string
+  status: 'succeeded' | 'failed' | 'pending' | 'refunded'
+  createdAt: string
+}
+
+export interface Invoice {
+  id: string
+  number: string
+  amount: number
+  currency: string
+  status: 'paid' | 'open' | 'void' | 'draft' | 'uncollectible'
+  periodStart: string
+  periodEnd: string
+  pdfUrl?: string
+  createdAt: string
 }
 
 export interface TriggerCondition {

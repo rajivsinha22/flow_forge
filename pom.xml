@@ -26,6 +26,7 @@
         <module>flowforge-execution-engine</module>
         <module>flowforge-integration-service</module>
         <module>flowforge-websocket-service</module>
+        <module>flowforge-billing-service</module>
     </modules>
 
     <properties>

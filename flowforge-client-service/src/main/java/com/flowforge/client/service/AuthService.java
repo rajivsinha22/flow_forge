@@ -3,8 +3,10 @@ package com.flowforge.client.service;
 import com.flowforge.client.dto.LoginRequest;
 import com.flowforge.client.dto.LoginResponse;
 import com.flowforge.client.dto.UserDto;
+import com.flowforge.client.repository.ClientRepository;
 import com.flowforge.client.repository.ClientUserRepository;
 import com.flowforge.common.exception.UnauthorizedException;
+import com.flowforge.common.model.Client;
 import com.flowforge.common.model.ClientUser;
 import com.flowforge.common.security.JwtUtil;
 import org.slf4j.Logger;
@@ -25,6 +27,7 @@ public class AuthService {
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     private final ClientUserRepository clientUserRepository;
+    private final ClientRepository clientRepository;
     private final PasswordEncoder passwordEncoder;
     private final RedisTemplate<String, String> redisTemplate;
 
@@ -35,9 +38,11 @@ public class AuthService {
     private long jwtExpiration;
 
     public AuthService(ClientUserRepository clientUserRepository,
+                       ClientRepository clientRepository,
                        PasswordEncoder passwordEncoder,
                        RedisTemplate<String, String> redisTemplate) {
         this.clientUserRepository = clientUserRepository;
+        this.clientRepository = clientRepository;
         this.passwordEncoder = passwordEncoder;
         this.redisTemplate = redisTemplate;
     }
@@ -78,6 +83,8 @@ public class AuthService {
         claims.put("sub", user.getEmail());
         claims.put("userId", user.getId());
         claims.put("clientId", user.getClientId());
+        Client client = clientRepository.findById(user.getClientId()).orElse(null);
+        claims.put("plan", client != null ? client.getPlan().name() : "FREE");
         claims.put("roles", user.getRoles());
         return jwtUtil.generateToken(claims);
     }

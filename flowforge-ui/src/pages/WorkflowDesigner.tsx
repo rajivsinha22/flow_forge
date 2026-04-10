@@ -113,9 +113,7 @@ const DesignerInner: React.FC<DesignerInnerProps> = ({ workflowName }) => {
         })
         setSchemaConfig({
           inputModelId: wf.inputModelId,
-          outputModelId: wf.outputModelId,
-          outputMapping: wf.outputMapping as Record<string, string> | undefined,
-          errorHandlingConfig: wf.errorHandlingConfig,
+          dataSyncMode: wf.dataSyncMode,
         })
       } catch {
         setWorkflow(MOCK_WORKFLOW)
@@ -419,9 +417,7 @@ const DesignerInner: React.FC<DesignerInnerProps> = ({ workflowName }) => {
             cronExpression: wfSettings.cronExpression || undefined,
             kafkaTopic: wfSettings.kafkaTopic || undefined,
             inputModelId: schemaConfig.inputModelId,
-            outputModelId: schemaConfig.outputModelId,
-            outputMapping: schemaConfig.outputMapping,
-            errorHandlingConfig: schemaConfig.errorHandlingConfig,
+            dataSyncMode: schemaConfig.dataSyncMode,
           }}
           onSave={handleSettingsSave}
           onClose={() => setShowSettingsModal(false)}

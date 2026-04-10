@@ -1,7 +1,6 @@
 package com.flowforge.workflow.dto;
 
 import com.flowforge.workflow.model.EdgeDef;
-import com.flowforge.workflow.model.ErrorHandlingConfig;
 import com.flowforge.workflow.model.StepDef;
 
 import java.util.List;
@@ -23,14 +22,8 @@ public class UpdateWorkflowRequest {
     /** ID of the DataModel used to validate trigger input (null = accept any payload) */
     private String inputModelId;
 
-    /** ID of the DataModel describing the expected success response shape */
-    private String outputModelId;
-
-    /** Template mapping step outputs to the final API response body */
-    private Map<String, Object> outputMapping;
-
-    /** How the workflow behaves when execution or validation fails */
-    private ErrorHandlingConfig errorHandlingConfig;
+    /** Data sync mode for linked model records: READ or WRITE */
+    private String dataSyncMode;
 
     public UpdateWorkflowRequest() {
     }
@@ -65,14 +58,8 @@ public class UpdateWorkflowRequest {
     public String getInputModelId() { return inputModelId; }
     public void setInputModelId(String inputModelId) { this.inputModelId = inputModelId; }
 
-    public String getOutputModelId() { return outputModelId; }
-    public void setOutputModelId(String outputModelId) { this.outputModelId = outputModelId; }
-
-    public Map<String, Object> getOutputMapping() { return outputMapping; }
-    public void setOutputMapping(Map<String, Object> outputMapping) { this.outputMapping = outputMapping; }
-
-    public ErrorHandlingConfig getErrorHandlingConfig() { return errorHandlingConfig; }
-    public void setErrorHandlingConfig(ErrorHandlingConfig errorHandlingConfig) { this.errorHandlingConfig = errorHandlingConfig; }
+    public String getDataSyncMode() { return dataSyncMode; }
+    public void setDataSyncMode(String dataSyncMode) { this.dataSyncMode = dataSyncMode; }
 
     @Override
     public boolean equals(Object o) {

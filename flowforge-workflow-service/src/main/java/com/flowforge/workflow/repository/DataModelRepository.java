@@ -23,4 +23,6 @@ public interface DataModelRepository extends MongoRepository<DataModel, String> 
     boolean existsByClientIdAndNameAndIdNot(String clientId, String name, String id);
 
     long countByClientIdAndInputModelIdOrOutputModelId(String clientId, String inputModelId, String outputModelId);
+
+    long countByClientId(String clientId);
 }

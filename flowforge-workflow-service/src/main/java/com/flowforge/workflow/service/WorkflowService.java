@@ -1,5 +1,9 @@
 package com.flowforge.workflow.service;
 
+import com.flowforge.common.exception.PlanLimitExceededException;
+import com.flowforge.common.model.Client;
+import com.flowforge.common.model.PlanLimits;
+import com.flowforge.workflow.config.TenantContext;
 import com.flowforge.workflow.dto.CreateWorkflowRequest;
 import com.flowforge.workflow.dto.UpdateWorkflowRequest;
 import com.flowforge.workflow.dto.WorkflowSummaryDto;
@@ -44,6 +48,15 @@ public class WorkflowService {
 
     public WorkflowDefinition createWorkflow(String clientId, CreateWorkflowRequest request, String createdBy) {
         log.info("Creating workflow '{}' for clientId={}", request.getName(), clientId);
+
+        // Plan enforcement — check workflow count
+        String planHeader = TenantContext.getPlan();
+        Client.Plan plan = Client.Plan.valueOf(planHeader != null ? planHeader : "FREE");
+        PlanLimits limits = PlanLimits.forPlan(plan);
+        long workflowCount = workflowRepository.countByClientId(clientId);
+        if (PlanLimits.isExceeded(limits.getMaxWorkflows(), workflowCount)) {
+            throw new PlanLimitExceededException(plan, "workflows", workflowCount, limits.getMaxWorkflows());
+        }
 
         // Check name uniqueness for active version
         workflowRepository.findByClientIdAndNameAndActiveVersionTrue(clientId, request.getName())
@@ -118,19 +131,12 @@ public class WorkflowService {
         if (request.getEdges() != null) {
             existing.setEdges(request.getEdges());
         }
-        // Schema model bindings — null means "clear the binding"
-        if (request.getInputModelId() != null || request.getInputModelId() == null
-                && request.getOutputModelId() != null) {
+        // Schema model bindings
+        if (request.getInputModelId() != null) {
             existing.setInputModelId(request.getInputModelId());
         }
-        if (request.getOutputModelId() != null) {
-            existing.setOutputModelId(request.getOutputModelId());
-        }
-        if (request.getOutputMapping() != null) {
-            existing.setOutputMapping(request.getOutputMapping());
-        }
-        if (request.getErrorHandlingConfig() != null) {
-            existing.setErrorHandlingConfig(request.getErrorHandlingConfig());
+        if (request.getDataSyncMode() != null) {
+            existing.setDataSyncMode(request.getDataSyncMode());
         }
         existing.setUpdatedAt(LocalDateTime.now());
 

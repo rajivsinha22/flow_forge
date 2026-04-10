@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { Plus, Search, Edit2, GitBranch, Copy, Play, Trash2, Filter, Clock, ChevronDown, SlidersHorizontal } from 'lucide-react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Plus, Search, Edit2, GitBranch, Copy, Play, Trash2, Filter, Clock, ChevronDown, SlidersHorizontal, AlertTriangle } from 'lucide-react'
+import { usePlanEnforcement } from '../hooks/usePlanEnforcement'
+import { useBillingStore } from '../store/billingStore'
 import { listWorkflows, deleteWorkflow, cloneWorkflow, createWorkflow, updateWorkflow } from '../api/workflows'
 import type { Workflow } from '../types'
 import StatusBadge from '../components/shared/StatusBadge'
@@ -27,14 +29,19 @@ const triggerColors: Record<string, string> = {
 
 const WorkflowList: React.FC = () => {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const workflowLimit = usePlanEnforcement('workflows')
+  const { fetchUsage } = useBillingStore()
+
+  useEffect(() => { fetchUsage() }, [fetchUsage])
   const [workflows, setWorkflows] = useState<Workflow[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [triggerFilter, setTriggerFilter] = useState('')
 
-  // Modals
-  const [showCreateModal, setShowCreateModal] = useState(false)
+  // Modals — auto-open create modal when ?new=true is in the URL
+  const [showCreateModal, setShowCreateModal] = useState(() => searchParams.get('new') === 'true')
   const [editTarget, setEditTarget] = useState<Workflow | null>(null)
   const [triggerTarget, setTriggerTarget] = useState<Workflow | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Workflow | null>(null)
@@ -77,6 +84,7 @@ const WorkflowList: React.FC = () => {
     })
     setWorkflows((prev) => [wf, ...prev])
     setShowCreateModal(false)
+    searchParams.delete('new')
     navigate(`/workflows/${wf.name}/designer`)
   }
 
@@ -140,12 +148,35 @@ const WorkflowList: React.FC = () => {
           <p className="text-gray-500 text-sm mt-1">{workflows.length} workflow{workflows.length !== 1 ? 's' : ''} total</p>
         </div>
         <button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors shadow-sm"
+          onClick={() => !workflowLimit.isAtLimit && setShowCreateModal(true)}
+          disabled={workflowLimit.isAtLimit}
+          className={`flex items-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-xl transition-colors shadow-sm ${
+            workflowLimit.isAtLimit
+              ? 'bg-gray-400 cursor-not-allowed opacity-50'
+              : 'bg-blue-600 hover:bg-blue-700'
+          }`}
         >
-          <Plus size={16} /> New Workflow
+          <Plus size={16} /> {workflowLimit.isAtLimit ? `${workflowLimit.used}/${workflowLimit.limit} Workflows` : 'New Workflow'}
         </button>
       </div>
+
+      {workflowLimit.isAtLimit && (
+        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm text-red-700">
+            <AlertTriangle size={16} />
+            <span>Workflow limit reached ({workflowLimit.used}/{workflowLimit.limit}). Upgrade your plan to create more.</span>
+          </div>
+          <Link to="/billing" className="text-xs font-medium text-red-700 bg-red-100 px-3 py-1 rounded-lg hover:bg-red-200">
+            Upgrade
+          </Link>
+        </div>
+      )}
+      {workflowLimit.isNearLimit && !workflowLimit.isAtLimit && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 mb-6 flex items-center gap-2 text-sm text-yellow-700">
+          <AlertTriangle size={16} />
+          <span>Approaching workflow limit ({workflowLimit.used}/{workflowLimit.limit}).</span>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-6">
@@ -313,7 +344,7 @@ const WorkflowList: React.FC = () => {
         <WorkflowFormModal
           workflow={null}
           onSave={handleCreate}
-          onClose={() => setShowCreateModal(false)}
+          onClose={() => { setShowCreateModal(false); searchParams.delete('new'); setSearchParams(searchParams, { replace: true }) }}
         />
       )}
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Save, Plus, Trash2, Eye, EyeOff, Lock } from 'lucide-react'
+import { Save, Plus, Trash2, Eye, EyeOff, Lock, Building2, Webhook } from 'lucide-react'
 import { getOrgSettings, updateOrgSettings, listEnvVars, setEnvVar, deleteEnvVar } from '../api/settings'
 import type { OrgSettings, EnvVar } from '../api/settings'
 import Spinner from '../components/shared/Spinner'
@@ -97,7 +97,7 @@ const Settings: React.FC = () => {
   if (!settings) return null
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
+    <div className="p-8 max-w-6xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
         <p className="text-gray-500 text-sm mt-1">Organization configuration and environment variables</p>
@@ -111,7 +111,10 @@ const Settings: React.FC = () => {
 
       {/* Organization Info */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-6">
-        <h2 className="font-semibold text-gray-900 mb-4">Organization Info</h2>
+        <div className="flex items-center gap-2 mb-4">
+          <Building2 size={18} className="text-blue-600" />
+          <h2 className="font-semibold text-gray-900">Organization Info</h2>
+        </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2 md:col-span-1">
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Organization Name</label>
@@ -147,7 +150,10 @@ const Settings: React.FC = () => {
 
       {/* Webhook Config */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-6">
-        <h2 className="font-semibold text-gray-900 mb-4">Webhook Configuration</h2>
+        <div className="flex items-center gap-2 mb-4">
+          <Webhook size={18} className="text-blue-600" />
+          <h2 className="font-semibold text-gray-900">Webhook Configuration</h2>
+        </div>
         <div className="space-y-4">
           {/* Enable toggle */}
           <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
@@ -278,18 +284,26 @@ const Settings: React.FC = () => {
 
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-50 bg-gray-50">
-              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Key</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Value</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Encrypted</th>
-              <th className="text-right px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Actions</th>
+            <tr className="border-b border-gray-100 bg-gray-50">
+              <th className="text-left px-6 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Key</th>
+              <th className="text-left px-4 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Value</th>
+              <th className="text-left px-4 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Encrypted</th>
+              <th className="text-right px-6 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
-            {envVars.map((v) => (
+            {envVars.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="px-6 py-14 text-center">
+                  <Lock size={28} className="mx-auto text-gray-300 mb-3" />
+                  <p className="text-gray-400 font-medium">No environment variables</p>
+                  <p className="text-gray-300 text-xs mt-1">Click "Add Variable" to store a secret or config value.</p>
+                </td>
+              </tr>
+            ) : envVars.map((v) => (
               <tr key={v.key} className="hover:bg-gray-50">
-                <td className="px-6 py-3.5 font-mono text-sm font-medium text-gray-800">{v.key}</td>
-                <td className="px-4 py-3.5">
+                <td className="px-6 py-4 font-mono text-xs text-gray-700">{v.key}</td>
+                <td className="px-4 py-4">
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-xs text-gray-600 max-w-[220px] truncate">
                       {v.encrypted && !visibleVars.has(v.key) ? '•'.repeat(16) : v.value}
@@ -301,14 +315,14 @@ const Settings: React.FC = () => {
                     )}
                   </div>
                 </td>
-                <td className="px-4 py-3.5">
+                <td className="px-4 py-4">
                   {v.encrypted ? (
                     <span className="flex items-center gap-1 text-xs text-green-700"><Lock size={11} /> Encrypted</span>
                   ) : (
                     <span className="text-xs text-gray-400">Plaintext</span>
                   )}
                 </td>
-                <td className="px-6 py-3.5 text-right">
+                <td className="px-6 py-4 text-right">
                   <button onClick={() => handleDeleteEnvVar(v.key)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg">
                     <Trash2 size={14} />
                   </button>

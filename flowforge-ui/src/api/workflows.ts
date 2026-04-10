@@ -26,14 +26,7 @@ export interface CreateWorkflowRequest {
   cronExpression?: string
   kafkaTopic?: string
   inputModelId?: string
-  outputModelId?: string
-  outputMapping?: Record<string, string>
-  errorHandlingConfig?: {
-    mode: 'FAIL_FAST' | 'CONTINUE' | 'CUSTOM_RESPONSE'
-    customStatusCode?: number
-    customBody?: Record<string, unknown>
-    notifyOnError?: boolean
-  }
+  dataSyncMode?: 'READ' | 'WRITE'
 }
 
 

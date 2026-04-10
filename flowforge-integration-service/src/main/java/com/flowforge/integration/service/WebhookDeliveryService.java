@@ -2,6 +2,10 @@ package com.flowforge.integration.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.flowforge.common.exception.PlanLimitExceededException;
+import com.flowforge.common.model.Client;
+import com.flowforge.common.model.PlanLimits;
+import com.flowforge.integration.config.TenantContext;
 import com.flowforge.integration.model.DeliveryAttempt;
 import com.flowforge.integration.model.WebhookDelivery;
 import com.flowforge.integration.repository.WebhookDeliveryRepository;
@@ -50,6 +54,16 @@ public class WebhookDeliveryService {
      */
     public WebhookDelivery createDelivery(String clientId, String executionId, String eventType,
                                            String targetUrl, Object payload) {
+        // Plan enforcement — check daily webhook count
+        String planHeader = TenantContext.getPlan();
+        Client.Plan plan = Client.Plan.valueOf(planHeader != null ? planHeader : "FREE");
+        PlanLimits limits = PlanLimits.forPlan(plan);
+        LocalDateTime startOfDay = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
+        long todayCount = deliveryRepository.countByClientIdAndCreatedAtAfter(clientId, startOfDay);
+        if (PlanLimits.isExceeded(limits.getMaxWebhooksPerDay(), todayCount)) {
+            throw new PlanLimitExceededException(plan, "webhooks", todayCount, limits.getMaxWebhooksPerDay());
+        }
+
         String payloadJson;
         try {
             payloadJson = objectMapper.writeValueAsString(payload);
