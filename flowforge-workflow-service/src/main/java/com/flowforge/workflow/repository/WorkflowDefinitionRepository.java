@@ -4,6 +4,7 @@ import com.flowforge.workflow.model.WorkflowDefinition;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -31,4 +32,25 @@ public interface WorkflowDefinitionRepository extends MongoRepository<WorkflowDe
     boolean existsByClientIdAndNameAndVersion(String clientId, String name, int version);
 
     long countByClientId(String clientId);
+
+    // ── Namespace-aware query methods ─────────────────────────────────────────
+
+    List<WorkflowDefinition> findByClientIdAndNamespace(String clientId, String namespace);
+
+    Page<WorkflowDefinition> findByClientIdAndNamespace(String clientId, String namespace, Pageable pageable);
+
+    Optional<WorkflowDefinition> findByClientIdAndNamespaceAndNameAndActiveVersionTrue(String clientId, String namespace, String name);
+
+    List<WorkflowDefinition> findByClientIdAndNamespaceAndName(String clientId, String namespace, String name);
+
+    Page<WorkflowDefinition> findByClientIdAndNamespaceAndStatus(String clientId, String namespace, String status, Pageable pageable);
+
+    long countByClientIdAndNamespace(String clientId, String namespace);
+
+    @Query("{'clientId': ?0, 'namespace': ?1, '$or': [" +
+           "{'name': {'$regex': ?2, '$options': 'i'}}, " +
+           "{'displayName': {'$regex': ?2, '$options': 'i'}}, " +
+           "{'description': {'$regex': ?2, '$options': 'i'}}" +
+           "]}")
+    Page<WorkflowDefinition> searchByClientIdAndNamespace(String clientId, String namespace, String query, Pageable pageable);
 }

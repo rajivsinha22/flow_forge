@@ -40,6 +40,8 @@ public class SecurityConfig {
                     "/api/v1/clients/register",
                     "/api/v1/clients/login",
                     "/api/v1/auth/refresh",
+                    "/api/v1/auth/invite/**",
+                    "/api/v1/auth/accept-invite",
                     "/actuator/health",
                     "/actuator/info"
                 ).permitAll()

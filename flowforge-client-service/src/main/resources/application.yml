@@ -10,11 +10,21 @@ spring:
     redis:
       host: localhost
       port: 6379
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:1025}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${SMTP_AUTH:false}
+      mail.smtp.starttls.enable: ${SMTP_STARTTLS:false}
 
 app:
   jwt:
     secret: flowforge-secret-key-change-in-production-must-be-256-bits-long
     expiration: 86400000
+  base-url: ${APP_BASE_URL:http://localhost:3000}
+  invitation-expiry-hours: ${INVITATION_EXPIRY_HOURS:72}
 
 management:
   endpoints:

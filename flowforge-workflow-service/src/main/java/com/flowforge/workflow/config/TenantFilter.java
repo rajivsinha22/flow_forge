@@ -20,6 +20,7 @@ public class TenantFilter extends OncePerRequestFilter {
 
     public static final String CLIENT_ID_HEADER = "X-Client-Id";
     public static final String CLIENT_PLAN_HEADER = "X-Client-Plan";
+    public static final String NAMESPACE_HEADER = "X-Namespace";
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
@@ -38,6 +39,11 @@ public class TenantFilter extends OncePerRequestFilter {
             if (StringUtils.hasText(plan)) {
                 TenantContext.setPlan(plan);
                 log.debug("Set tenant plan={}", plan);
+            }
+            String namespace = request.getHeader(NAMESPACE_HEADER);
+            if (StringUtils.hasText(namespace)) {
+                TenantContext.setNamespace(namespace);
+                log.debug("Set tenant namespace={}", namespace);
             }
             filterChain.doFilter(request, response);
         } finally {

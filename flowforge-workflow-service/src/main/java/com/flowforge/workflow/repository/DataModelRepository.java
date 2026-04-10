@@ -25,4 +25,18 @@ public interface DataModelRepository extends MongoRepository<DataModel, String> 
     long countByClientIdAndInputModelIdOrOutputModelId(String clientId, String inputModelId, String outputModelId);
 
     long countByClientId(String clientId);
+
+    // ── Namespace-aware query methods ─────────────────────────────────────────
+
+    List<DataModel> findByClientIdAndNamespace(String clientId, String namespace);
+
+    List<DataModel> findByClientIdAndNamespaceAndActiveTrue(String clientId, String namespace);
+
+    Optional<DataModel> findByClientIdAndNamespaceAndId(String clientId, String namespace, String id);
+
+    Optional<DataModel> findByClientIdAndNamespaceAndName(String clientId, String namespace, String name);
+
+    boolean existsByClientIdAndNamespaceAndName(String clientId, String namespace, String name);
+
+    long countByClientIdAndNamespace(String clientId, String namespace);
 }

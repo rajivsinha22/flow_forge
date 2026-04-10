@@ -4,6 +4,7 @@ public class TenantContext {
 
     private static final ThreadLocal<String> CURRENT_CLIENT = new ThreadLocal<>();
     private static final ThreadLocal<String> CURRENT_PLAN = new ThreadLocal<>();
+    private static final ThreadLocal<String> CURRENT_NAMESPACE = new ThreadLocal<>();
 
     private TenantContext() {
     }
@@ -24,8 +25,18 @@ public class TenantContext {
         return CURRENT_PLAN.get();
     }
 
+    public static void setNamespace(String namespace) {
+        CURRENT_NAMESPACE.set(namespace);
+    }
+
+    public static String getNamespace() {
+        String ns = CURRENT_NAMESPACE.get();
+        return ns != null ? ns : "default";
+    }
+
     public static void clear() {
         CURRENT_CLIENT.remove();
         CURRENT_PLAN.remove();
+        CURRENT_NAMESPACE.remove();
     }
 }

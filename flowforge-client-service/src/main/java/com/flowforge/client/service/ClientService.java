@@ -4,6 +4,7 @@ import com.flowforge.client.dto.*;
 import com.flowforge.client.repository.ClientRepository;
 import com.flowforge.client.repository.ClientUserRepository;
 import com.flowforge.client.repository.EnvVariableRepository;
+import com.flowforge.client.repository.NamespaceRepository;
 import com.flowforge.client.repository.RoleRepository;
 import com.flowforge.common.audit.AuditService;
 import com.flowforge.common.exception.ResourceNotFoundException;
@@ -11,6 +12,7 @@ import com.flowforge.common.exception.WorkflowValidationException;
 import com.flowforge.common.model.Client;
 import com.flowforge.common.model.ClientUser;
 import com.flowforge.common.model.EnvVariable;
+import com.flowforge.common.model.Namespace;
 import com.flowforge.common.model.PlanLimits;
 import com.flowforge.common.model.Role;
 import org.slf4j.Logger;
@@ -34,6 +36,7 @@ public class ClientService {
     private final ClientUserRepository clientUserRepository;
     private final RoleRepository roleRepository;
     private final EnvVariableRepository envVariableRepository;
+    private final NamespaceRepository namespaceRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuditService auditService;
 
@@ -41,12 +44,14 @@ public class ClientService {
                          ClientUserRepository clientUserRepository,
                          RoleRepository roleRepository,
                          EnvVariableRepository envVariableRepository,
+                         NamespaceRepository namespaceRepository,
                          PasswordEncoder passwordEncoder,
                          AuditService auditService) {
         this.clientRepository = clientRepository;
         this.clientUserRepository = clientUserRepository;
         this.roleRepository = roleRepository;
         this.envVariableRepository = envVariableRepository;
+        this.namespaceRepository = namespaceRepository;
         this.passwordEncoder = passwordEncoder;
         this.auditService = auditService;
     }
@@ -88,7 +93,18 @@ public class ClientService {
                 .status(ClientUser.UserStatus.ACTIVE)
                 .createdAt(Instant.now())
                 .build();
-        clientUserRepository.save(adminUser);
+        adminUser = clientUserRepository.save(adminUser);
+
+        // Create default namespace
+        Namespace defaultNamespace = Namespace.builder()
+                .clientId(client.getId())
+                .name("default")
+                .displayName("Default")
+                .description("Default namespace")
+                .createdBy(adminUser.getId())
+                .createdAt(Instant.now())
+                .build();
+        namespaceRepository.save(defaultNamespace);
 
         auditService.logEvent(client.getId(), request.getEmail(), "CLIENT_REGISTERED",
                 Map.of("orgName", request.getOrgName(), "plan", client.getPlan().name()));

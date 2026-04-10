@@ -20,6 +20,7 @@ public class StepExecution {
     private String executionId;
 
     private String clientId;
+    private String namespace = "default";
     private String stepId;
     private String stepName;
     private String stepType;
@@ -60,6 +61,9 @@ public class StepExecution {
 
     public String getClientId() { return clientId; }
     public void setClientId(String clientId) { this.clientId = clientId; }
+
+    public String getNamespace() { return namespace; }
+    public void setNamespace(String namespace) { this.namespace = namespace; }
 
     public String getStepId() { return stepId; }
     public void setStepId(String stepId) { this.stepId = stepId; }
@@ -150,6 +154,7 @@ public class StepExecution {
         private String id;
         private String executionId;
         private String clientId;
+        private String namespace = "default";
         private String stepId;
         private String stepName;
         private String stepType;
@@ -169,6 +174,7 @@ public class StepExecution {
         public Builder id(String id) { this.id = id; return this; }
         public Builder executionId(String executionId) { this.executionId = executionId; return this; }
         public Builder clientId(String clientId) { this.clientId = clientId; return this; }
+        public Builder namespace(String namespace) { this.namespace = namespace; return this; }
         public Builder stepId(String stepId) { this.stepId = stepId; return this; }
         public Builder stepName(String stepName) { this.stepName = stepName; return this; }
         public Builder stepType(String stepType) { this.stepType = stepType; return this; }
@@ -190,6 +196,7 @@ public class StepExecution {
             s.id = this.id;
             s.executionId = this.executionId;
             s.clientId = this.clientId;
+            s.namespace = this.namespace;
             s.stepId = this.stepId;
             s.stepName = this.stepName;
             s.stepType = this.stepType;

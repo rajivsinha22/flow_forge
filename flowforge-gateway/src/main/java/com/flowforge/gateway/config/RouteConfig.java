@@ -49,6 +49,15 @@ public class RouteConfig {
                         .path("/api/v1/clients/login")
                         .uri(clientServiceUrl))
 
+                // Invite validation and acceptance — public (no JWT)
+                .route("invite-validate", r -> r
+                        .path("/api/v1/auth/invite/**")
+                        .uri(clientServiceUrl))
+
+                .route("accept-invite", r -> r
+                        .path("/api/v1/auth/accept-invite")
+                        .uri(clientServiceUrl))
+
                 // Token refresh + logout live under /api/v1/auth/**
                 .route("auth-routes", r -> r
                         .path("/api/v1/auth/**")
@@ -110,6 +119,11 @@ public class RouteConfig {
 
                 .route("clients-me-routes", r -> r
                         .path("/api/v1/clients/me/**", "/api/v1/clients/me")
+                        .filters(f -> f.filter(jwtAuthFilter.apply(new JwtAuthFilter.Config())))
+                        .uri(clientServiceUrl))
+
+                .route("namespace-routes", r -> r
+                        .path("/api/v1/namespaces/**")
                         .filters(f -> f.filter(jwtAuthFilter.apply(new JwtAuthFilter.Config())))
                         .uri(clientServiceUrl))
 

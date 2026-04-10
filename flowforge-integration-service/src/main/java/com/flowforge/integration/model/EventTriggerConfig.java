@@ -18,6 +18,8 @@ public class EventTriggerConfig {
     @Indexed
     private String clientId;
 
+    private String namespace = "default";
+
     private String name;
 
     /**
@@ -123,6 +125,14 @@ public class EventTriggerConfig {
 
     public void setClientId(String clientId) {
         this.clientId = clientId;
+    }
+
+    public String getNamespace() {
+        return namespace;
+    }
+
+    public void setNamespace(String namespace) {
+        this.namespace = namespace;
     }
 
     public String getName() {
@@ -277,6 +287,7 @@ public class EventTriggerConfig {
     public static class Builder {
         private String id;
         private String clientId;
+        private String namespace = "default";
         private String name;
         private String sourceType;
         private String workflowId;
@@ -295,6 +306,7 @@ public class EventTriggerConfig {
 
         public Builder id(String id) { this.id = id; return this; }
         public Builder clientId(String clientId) { this.clientId = clientId; return this; }
+        public Builder namespace(String namespace) { this.namespace = namespace; return this; }
         public Builder name(String name) { this.name = name; return this; }
         public Builder sourceType(String sourceType) { this.sourceType = sourceType; return this; }
         public Builder workflowId(String workflowId) { this.workflowId = workflowId; return this; }
@@ -312,9 +324,11 @@ public class EventTriggerConfig {
         public Builder updatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; return this; }
 
         public EventTriggerConfig build() {
-            return new EventTriggerConfig(id, clientId, name, sourceType, workflowId, workflowName,
+            EventTriggerConfig config = new EventTriggerConfig(id, clientId, name, sourceType, workflowId, workflowName,
                     topicOrUrl, filterExpression, payloadMapping, condition, triggerAction,
                     resumeExecutionId, resumeStepId, resumeTokenPath, enabled, createdAt, updatedAt);
+            config.setNamespace(this.namespace);
+            return config;
         }
     }
 }

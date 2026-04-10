@@ -3,6 +3,7 @@ package com.flowforge.integration.service;
 import com.flowforge.integration.model.FailedWorkflow;
 import com.flowforge.integration.model.ReplayAttempt;
 import com.flowforge.integration.repository.FailedWorkflowRepository;
+import com.flowforge.integration.config.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -43,6 +44,9 @@ public class FailedWorkflowService {
         if (message.getId() == null) {
             message.setId(UUID.randomUUID().toString());
         }
+        if (message.getNamespace() == null || message.getNamespace().isEmpty()) {
+            message.setNamespace(TenantContext.getNamespace());
+        }
         if (message.getStatus() == null) {
             message.setStatus(STATUS_PENDING);
         }
@@ -60,14 +64,16 @@ public class FailedWorkflowService {
      * List failed workflow entries for a client, paginated.
      */
     public Page<FailedWorkflow> listMessages(String clientId, Pageable pageable) {
-        return failedWorkflowRepository.findByClientId(clientId, pageable);
+        String namespace = TenantContext.getNamespace();
+        return failedWorkflowRepository.findByClientIdAndNamespace(clientId, namespace, pageable);
     }
 
     /**
      * List failed workflow entries filtered by status.
      */
     public Page<FailedWorkflow> listMessagesByStatus(String clientId, String status, Pageable pageable) {
-        return failedWorkflowRepository.findByClientIdAndStatus(clientId, status, pageable);
+        String namespace = TenantContext.getNamespace();
+        return failedWorkflowRepository.findByClientIdAndNamespaceAndStatus(clientId, namespace, status, pageable);
     }
 
     /**
@@ -194,11 +200,12 @@ public class FailedWorkflowService {
      * Get counts by status for a client.
      */
     public Map<String, Long> getStatusCounts(String clientId) {
+        String namespace = TenantContext.getNamespace();
         Map<String, Long> counts = new LinkedHashMap<>();
-        counts.put("pending", failedWorkflowRepository.countByClientIdAndStatus(clientId, STATUS_PENDING));
-        counts.put("replaying", failedWorkflowRepository.countByClientIdAndStatus(clientId, STATUS_REPLAYING));
-        counts.put("resolved", failedWorkflowRepository.countByClientIdAndStatus(clientId, STATUS_RESOLVED));
-        counts.put("discarded", failedWorkflowRepository.countByClientIdAndStatus(clientId, STATUS_DISCARDED));
+        counts.put("pending", failedWorkflowRepository.countByClientIdAndNamespaceAndStatus(clientId, namespace, STATUS_PENDING));
+        counts.put("replaying", failedWorkflowRepository.countByClientIdAndNamespaceAndStatus(clientId, namespace, STATUS_REPLAYING));
+        counts.put("resolved", failedWorkflowRepository.countByClientIdAndNamespaceAndStatus(clientId, namespace, STATUS_RESOLVED));
+        counts.put("discarded", failedWorkflowRepository.countByClientIdAndNamespaceAndStatus(clientId, namespace, STATUS_DISCARDED));
         return counts;
     }
 }

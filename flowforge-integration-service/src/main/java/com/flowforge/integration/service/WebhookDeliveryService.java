@@ -75,6 +75,7 @@ public class WebhookDeliveryService {
         WebhookDelivery delivery = WebhookDelivery.builder()
                 .id(UUID.randomUUID().toString())
                 .clientId(clientId)
+                .namespace(TenantContext.getNamespace())
                 .executionId(executionId)
                 .eventType(eventType)
                 .targetUrl(targetUrl)
@@ -221,7 +222,8 @@ public class WebhookDeliveryService {
      * List paginated deliveries for a client.
      */
     public Page<WebhookDelivery> listDeliveries(String clientId, Pageable pageable) {
-        return deliveryRepository.findByClientId(clientId, pageable);
+        String namespace = TenantContext.getNamespace();
+        return deliveryRepository.findByClientIdAndNamespace(clientId, namespace, pageable);
     }
 
     /**

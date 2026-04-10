@@ -3,6 +3,7 @@ package com.flowforge.client.controller;
 import com.flowforge.client.dto.*;
 import com.flowforge.client.service.AuthService;
 import com.flowforge.client.service.ClientService;
+import com.flowforge.client.service.UserService;
 import com.flowforge.common.model.Client;
 import com.flowforge.common.response.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,10 +22,13 @@ public class ClientController {
 
     private final ClientService clientService;
     private final AuthService authService;
+    private final UserService userService;
 
-    public ClientController(ClientService clientService, AuthService authService) {
+    public ClientController(ClientService clientService, AuthService authService,
+                            UserService userService) {
         this.clientService = clientService;
         this.authService = authService;
+        this.userService = userService;
     }
 
     @PostMapping("/api/v1/clients/register")
@@ -111,5 +115,45 @@ public class ClientController {
         String authHeader = request.getHeader("Authorization");
         authService.logout(authHeader);
         return ResponseEntity.ok(ApiResponse.success(null, "Logged out successfully"));
+    }
+
+    // ── Invitation public endpoints ──────────────────────────────────────────────
+
+    @GetMapping("/api/v1/auth/invite/{token}")
+    public ResponseEntity<ApiResponse<InvitationDto>> validateInvitation(@PathVariable String token) {
+        InvitationDto invitation = userService.validateInvitation(token);
+        return ResponseEntity.ok(ApiResponse.success(invitation));
+    }
+
+    @PostMapping("/api/v1/auth/accept-invite")
+    public ResponseEntity<ApiResponse<LoginResponse>> acceptInvite(
+            @Valid @RequestBody AcceptInviteRequest request) {
+        LoginResponse response = userService.acceptInvitation(request.getToken(), request.getPassword());
+        return ResponseEntity.ok(ApiResponse.success(response, "Invitation accepted successfully"));
+    }
+
+    // ── Invitation management endpoints ──────────────────────────────────────────
+
+    @GetMapping("/api/v1/users/invitations")
+    public ResponseEntity<ApiResponse<List<InvitationDto>>> listInvitations(
+            @RequestHeader("X-Client-Id") String clientId) {
+        List<InvitationDto> invitations = userService.listPendingInvitations(clientId);
+        return ResponseEntity.ok(ApiResponse.success(invitations));
+    }
+
+    @PostMapping("/api/v1/users/invitations/{id}/resend")
+    public ResponseEntity<ApiResponse<Object>> resendInvitation(
+            @RequestHeader("X-Client-Id") String clientId,
+            @PathVariable String id) {
+        userService.resendInvitation(clientId, id);
+        return ResponseEntity.ok(ApiResponse.success(null, "Invitation resent successfully"));
+    }
+
+    @DeleteMapping("/api/v1/users/invitations/{id}")
+    public ResponseEntity<ApiResponse<Object>> revokeInvitation(
+            @RequestHeader("X-Client-Id") String clientId,
+            @PathVariable String id) {
+        userService.revokeInvitation(clientId, id);
+        return ResponseEntity.ok(ApiResponse.success(null, "Invitation revoked successfully"));
     }
 }

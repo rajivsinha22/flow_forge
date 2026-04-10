@@ -16,6 +16,8 @@ public class WebhookDelivery {
     @Indexed
     private String clientId;
 
+    private String namespace = "default";
+
     private String executionId;
 
     /**
@@ -81,6 +83,14 @@ public class WebhookDelivery {
 
     public void setClientId(String clientId) {
         this.clientId = clientId;
+    }
+
+    public String getNamespace() {
+        return namespace;
+    }
+
+    public void setNamespace(String namespace) {
+        this.namespace = namespace;
     }
 
     public String getExecutionId() {
@@ -204,6 +214,7 @@ public class WebhookDelivery {
     public static class Builder {
         private String id;
         private String clientId;
+        private String namespace = "default";
         private String executionId;
         private String eventType;
         private String targetUrl;
@@ -218,6 +229,7 @@ public class WebhookDelivery {
 
         public Builder id(String id) { this.id = id; return this; }
         public Builder clientId(String clientId) { this.clientId = clientId; return this; }
+        public Builder namespace(String namespace) { this.namespace = namespace; return this; }
         public Builder executionId(String executionId) { this.executionId = executionId; return this; }
         public Builder eventType(String eventType) { this.eventType = eventType; return this; }
         public Builder targetUrl(String targetUrl) { this.targetUrl = targetUrl; return this; }
@@ -231,8 +243,10 @@ public class WebhookDelivery {
         public Builder nextRetryAt(LocalDateTime nextRetryAt) { this.nextRetryAt = nextRetryAt; return this; }
 
         public WebhookDelivery build() {
-            return new WebhookDelivery(id, clientId, executionId, eventType, targetUrl, payloadJson,
+            WebhookDelivery delivery = new WebhookDelivery(id, clientId, executionId, eventType, targetUrl, payloadJson,
                     signatureHeader, status, attemptCount, maxAttempts, attempts, createdAt, nextRetryAt);
+            delivery.setNamespace(this.namespace);
+            return delivery;
         }
     }
 }

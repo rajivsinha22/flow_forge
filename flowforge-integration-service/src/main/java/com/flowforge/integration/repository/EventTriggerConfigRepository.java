@@ -16,4 +16,12 @@ public interface EventTriggerConfigRepository extends MongoRepository<EventTrigg
     List<EventTriggerConfig> findBySourceTypeAndEnabled(String sourceType, boolean enabled);
 
     boolean existsByClientIdAndName(String clientId, String name);
+
+    // ── Namespace-aware query methods ─────────────────────────────────────────
+
+    List<EventTriggerConfig> findByClientIdAndNamespace(String clientId, String namespace);
+
+    List<EventTriggerConfig> findByClientIdAndNamespaceAndEnabled(String clientId, String namespace, boolean enabled);
+
+    boolean existsByClientIdAndNamespaceAndName(String clientId, String namespace, String name);
 }

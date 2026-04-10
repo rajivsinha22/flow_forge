@@ -12,6 +12,7 @@ public class WorkflowDefinitionSnapshot {
 
     private String id;
     private String clientId;
+    private String namespace = "default";
     private String name;
     private String displayName;
     private int version;
@@ -62,6 +63,9 @@ public class WorkflowDefinitionSnapshot {
 
     public String getClientId() { return clientId; }
     public void setClientId(String clientId) { this.clientId = clientId; }
+
+    public String getNamespace() { return namespace; }
+    public void setNamespace(String namespace) { this.namespace = namespace; }
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
@@ -126,6 +130,7 @@ public class WorkflowDefinitionSnapshot {
     public static class Builder {
         private String id;
         private String clientId;
+        private String namespace = "default";
         private String name;
         private String displayName;
         private int version;
@@ -139,6 +144,7 @@ public class WorkflowDefinitionSnapshot {
 
         public Builder id(String id) { this.id = id; return this; }
         public Builder clientId(String clientId) { this.clientId = clientId; return this; }
+        public Builder namespace(String namespace) { this.namespace = namespace; return this; }
         public Builder name(String name) { this.name = name; return this; }
         public Builder displayName(String displayName) { this.displayName = displayName; return this; }
         public Builder version(int version) { this.version = version; return this; }
@@ -153,6 +159,7 @@ public class WorkflowDefinitionSnapshot {
         public WorkflowDefinitionSnapshot build() {
             WorkflowDefinitionSnapshot s = new WorkflowDefinitionSnapshot(id, clientId, name, displayName,
                     version, triggerType, inputSchema, variables, steps);
+            s.namespace = this.namespace;
             s.inputModelId = this.inputModelId;
             s.resolvedInputSchemaJson = this.resolvedInputSchemaJson;
             s.dataSyncMode = this.dataSyncMode;

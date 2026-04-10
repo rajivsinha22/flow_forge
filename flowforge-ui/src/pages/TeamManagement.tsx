@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { UserPlus, Trash2, X, Shield, Users, Edit2, AlertTriangle } from 'lucide-react'
+import { UserPlus, Trash2, X, Shield, Users, Edit2, AlertTriangle, Mail, RefreshCw, Clock } from 'lucide-react'
 import { usePlanEnforcement } from '../hooks/usePlanEnforcement'
 import { useBillingStore } from '../store/billingStore'
 import { listUsers, inviteUser, listRoles, createRole } from '../api/team'
+import { listPendingInvitations, resendInvitation, revokeInvitation } from '../api/invitation'
+import type { PendingInvitation } from '../api/invitation'
 import type { TeamMember, Role } from '../types'
 import StatusBadge from '../components/shared/StatusBadge'
 import Spinner from '../components/shared/Spinner'
@@ -50,6 +52,9 @@ const TeamManagement: React.FC = () => {
   const [inviteForm, setInviteForm] = useState({ name: '', email: '', roles: ['VIEWER'] })
   const [newRole, setNewRole] = useState({ name: '', description: '', permissions: [] as string[] })
   const [isInviting, setIsInviting] = useState(false)
+  const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([])
+  const [resendingId, setResendingId] = useState<string | null>(null)
+  const [invitationSuccess, setInvitationSuccess] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -60,9 +65,14 @@ const TeamManagement: React.FC = () => {
       } catch {
         setUsers(MOCK_USERS)
         setRoles(MOCK_ROLES)
-      } finally {
-        setIsLoading(false)
       }
+      try {
+        const invitations = await listPendingInvitations()
+        setPendingInvitations(invitations)
+      } catch {
+        // invitations will stay empty
+      }
+      setIsLoading(false)
     }
     fetchData()
   }, [])
@@ -216,6 +226,94 @@ const TeamManagement: React.FC = () => {
         </div>
       )}
 
+      {/* Pending Invitations */}
+      {activeTab === 'users' && pendingInvitations.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mt-6">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            <div className="flex items-center gap-2">
+              <Clock size={16} className="text-amber-500" />
+              <h3 className="font-semibold text-gray-900">Pending Invitations</h3>
+              <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{pendingInvitations.length}</span>
+            </div>
+          </div>
+
+          {invitationSuccess && (
+            <div className="mx-6 mt-4 bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-2 text-sm">
+              {invitationSuccess}
+            </div>
+          )}
+
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-100 bg-gray-50">
+                <th className="text-left px-6 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Name</th>
+                <th className="text-left px-4 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Email</th>
+                <th className="text-left px-4 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Sent</th>
+                <th className="text-left px-4 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Expires</th>
+                <th className="text-right px-6 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {pendingInvitations.map((inv) => (
+                <tr key={inv.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                        {inv.name?.[0]?.toUpperCase() || '?'}
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">{inv.name}</p>
+                        <div className="flex flex-wrap gap-1 mt-0.5">
+                          {inv.roles.map((role) => (
+                            <span key={role} className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                              {role}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-4 text-sm text-gray-600">{inv.email}</td>
+                  <td className="px-4 py-4 text-xs text-gray-500">{format(new Date(inv.createdAt), 'MMM d, yyyy')}</td>
+                  <td className="px-4 py-4 text-xs text-gray-500">{format(new Date(inv.expiresAt), 'MMM d, yyyy')}</td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={async () => {
+                          setResendingId(inv.id)
+                          try {
+                            await resendInvitation(inv.id)
+                            setInvitationSuccess(`Invitation resent to ${inv.email}`)
+                            setTimeout(() => setInvitationSuccess(null), 3000)
+                          } catch { /* ignore */ }
+                          setResendingId(null)
+                        }}
+                        disabled={resendingId === inv.id}
+                        className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 disabled:opacity-50"
+                      >
+                        <RefreshCw size={12} className={resendingId === inv.id ? 'animate-spin' : ''} />
+                        Resend
+                      </button>
+                      <button
+                        onClick={async () => {
+                          try {
+                            await revokeInvitation(inv.id)
+                          } catch { /* ignore */ }
+                          setPendingInvitations((prev) => prev.filter((i) => i.id !== inv.id))
+                        }}
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       {/* Roles Tab */}
       {activeTab === 'roles' && (
         <div className="space-y-4">
@@ -269,6 +367,10 @@ const TeamManagement: React.FC = () => {
                 <select value={inviteForm.roles[0]} onChange={(e) => setInviteForm({ ...inviteForm, roles: [e.target.value] })} className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                   {roles.map((r) => <option key={r.id} value={r.name}>{r.name}</option>)}
                 </select>
+              </div>
+              <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-100 rounded-xl text-sm text-blue-700">
+                <Mail size={14} className="flex-shrink-0" />
+                <span>An invitation email will be sent to this address.</span>
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowInviteModal(false)} className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50">Cancel</button>

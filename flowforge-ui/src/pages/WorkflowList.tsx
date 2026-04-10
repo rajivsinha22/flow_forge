@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { Plus, Search, Edit2, GitBranch, Copy, Play, Trash2, Filter, Clock, ChevronDown, SlidersHorizontal, AlertTriangle } from 'lucide-react'
+import { Plus, Edit2, GitBranch, Copy, Play, Trash2, Filter, Clock, SlidersHorizontal, AlertTriangle } from 'lucide-react'
 import { usePlanEnforcement } from '../hooks/usePlanEnforcement'
 import { useBillingStore } from '../store/billingStore'
 import { listWorkflows, deleteWorkflow, cloneWorkflow, createWorkflow, updateWorkflow } from '../api/workflows'
 import type { Workflow } from '../types'
+import SearchBar from '../components/shared/SearchBar'
 import StatusBadge from '../components/shared/StatusBadge'
 import Spinner from '../components/shared/Spinner'
 import ConfirmModal from '../components/shared/ConfirmModal'
@@ -36,9 +37,7 @@ const WorkflowList: React.FC = () => {
   useEffect(() => { fetchUsage() }, [fetchUsage])
   const [workflows, setWorkflows] = useState<Workflow[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
-  const [triggerFilter, setTriggerFilter] = useState('')
+  const [searchState, setSearchState] = useState<{ q: string; status: string; triggerType: string }>({ q: '', status: '', triggerType: '' })
 
   // Modals — auto-open create modal when ?new=true is in the URL
   const [showCreateModal, setShowCreateModal] = useState(() => searchParams.get('new') === 'true')
@@ -63,9 +62,10 @@ const WorkflowList: React.FC = () => {
   }, [])
 
   const filtered = workflows.filter((wf) => {
-    const matchSearch = wf.displayName.toLowerCase().includes(search.toLowerCase()) || wf.name.includes(search.toLowerCase())
-    const matchStatus = !statusFilter || wf.status === statusFilter
-    const matchTrigger = !triggerFilter || wf.triggerType === triggerFilter
+    const q = searchState.q.toLowerCase()
+    const matchSearch = !q || wf.displayName.toLowerCase().includes(q) || wf.name.toLowerCase().includes(q)
+    const matchStatus = !searchState.status || wf.status === searchState.status
+    const matchTrigger = !searchState.triggerType || wf.triggerType === searchState.triggerType
     return matchSearch && matchStatus && matchTrigger
   })
 
@@ -179,43 +179,24 @@ const WorkflowList: React.FC = () => {
       )}
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-6">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search workflows..."
-            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <div className="relative">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="pl-3 pr-8 py-2 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
-          >
-            <option value="">All Statuses</option>
-            <option value="DRAFT">Draft</option>
-            <option value="PUBLISHED">Published</option>
-            <option value="DEPRECATED">Deprecated</option>
-          </select>
-          <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-        </div>
-        <div className="relative">
-          <select
-            value={triggerFilter}
-            onChange={(e) => setTriggerFilter(e.target.value)}
-            className="pl-3 pr-8 py-2 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
-          >
-            <option value="">All Triggers</option>
-            <option value="KAFKA">Kafka</option>
-            <option value="CRON">Cron</option>
-            <option value="API">API</option>
-          </select>
-          <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-        </div>
+      <div className="mb-6">
+        <SearchBar
+          placeholder="Search workflows..."
+          filters={[
+            { key: 'status', label: 'All Statuses', options: [
+              { label: 'Draft', value: 'DRAFT' },
+              { label: 'Published', value: 'PUBLISHED' },
+              { label: 'Deprecated', value: 'DEPRECATED' },
+            ]},
+            { key: 'triggerType', label: 'All Triggers', options: [
+              { label: 'API', value: 'API' },
+              { label: 'Kafka', value: 'KAFKA' },
+              { label: 'Cron', value: 'CRON' },
+              { label: 'Webhook', value: 'WEBHOOK' },
+            ]},
+          ]}
+          onSearch={(params) => setSearchState({ q: params.q, status: params.status || '', triggerType: params.triggerType || '' })}
+        />
       </div>
 
       {/* Table */}

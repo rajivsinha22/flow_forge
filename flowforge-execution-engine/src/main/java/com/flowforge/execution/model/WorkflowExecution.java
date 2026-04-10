@@ -18,6 +18,8 @@ public class WorkflowExecution {
     @Indexed
     private String clientId;
 
+    private String namespace = "default";
+
     private String workflowId;
     private String workflowName;
     private int workflowVersion;
@@ -70,6 +72,9 @@ public class WorkflowExecution {
 
     public String getClientId() { return clientId; }
     public void setClientId(String clientId) { this.clientId = clientId; }
+
+    public String getNamespace() { return namespace; }
+    public void setNamespace(String namespace) { this.namespace = namespace; }
 
     public String getWorkflowId() { return workflowId; }
     public void setWorkflowId(String workflowId) { this.workflowId = workflowId; }
@@ -146,6 +151,7 @@ public class WorkflowExecution {
                 durationMs == that.durationMs &&
                 Objects.equals(id, that.id) &&
                 Objects.equals(clientId, that.clientId) &&
+                Objects.equals(namespace, that.namespace) &&
                 Objects.equals(workflowId, that.workflowId) &&
                 Objects.equals(workflowName, that.workflowName) &&
                 Objects.equals(status, that.status) &&
@@ -163,7 +169,7 @@ public class WorkflowExecution {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, clientId, workflowId, workflowName, workflowVersion, status,
+        return Objects.hash(id, clientId, namespace, workflowId, workflowName, workflowVersion, status,
                 triggerType, triggeredBy, input, variables, stepOutputs, currentStepId,
                 completedSteps, startedAt, completedAt, durationMs, errorMessage);
     }
@@ -172,6 +178,7 @@ public class WorkflowExecution {
     public String toString() {
         return "WorkflowExecution{id='" + id + '\'' +
                 ", clientId='" + clientId + '\'' +
+                ", namespace='" + namespace + '\'' +
                 ", workflowName='" + workflowName + '\'' +
                 ", status='" + status + '\'' + '}';
     }
@@ -181,6 +188,7 @@ public class WorkflowExecution {
     public static class Builder {
         private String id;
         private String clientId;
+        private String namespace = "default";
         private String workflowId;
         private String workflowName;
         private int workflowVersion;
@@ -205,6 +213,7 @@ public class WorkflowExecution {
 
         public Builder id(String id) { this.id = id; return this; }
         public Builder clientId(String clientId) { this.clientId = clientId; return this; }
+        public Builder namespace(String namespace) { this.namespace = namespace; return this; }
         public Builder workflowId(String workflowId) { this.workflowId = workflowId; return this; }
         public Builder workflowName(String workflowName) { this.workflowName = workflowName; return this; }
         public Builder workflowVersion(int workflowVersion) { this.workflowVersion = workflowVersion; return this; }
@@ -231,6 +240,7 @@ public class WorkflowExecution {
             WorkflowExecution e = new WorkflowExecution();
             e.id = this.id;
             e.clientId = this.clientId;
+            e.namespace = this.namespace;
             e.workflowId = this.workflowId;
             e.workflowName = this.workflowName;
             e.workflowVersion = this.workflowVersion;

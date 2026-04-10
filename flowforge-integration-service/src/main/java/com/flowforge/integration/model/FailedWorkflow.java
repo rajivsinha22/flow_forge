@@ -19,6 +19,8 @@ public class FailedWorkflow {
     @Indexed
     private String clientId;
 
+    private String namespace = "default";
+
     private String executionId;
 
     private String workflowId;
@@ -99,6 +101,9 @@ public class FailedWorkflow {
 
     public String getClientId() { return clientId; }
     public void setClientId(String clientId) { this.clientId = clientId; }
+
+    public String getNamespace() { return namespace; }
+    public void setNamespace(String namespace) { this.namespace = namespace; }
 
     public String getExecutionId() { return executionId; }
     public void setExecutionId(String executionId) { this.executionId = executionId; }
@@ -182,6 +187,7 @@ public class FailedWorkflow {
     public static class Builder {
         private String id;
         private String clientId;
+        private String namespace = "default";
         private String executionId;
         private String workflowId;
         private String workflowName;
@@ -200,6 +206,7 @@ public class FailedWorkflow {
 
         public Builder id(String id) { this.id = id; return this; }
         public Builder clientId(String clientId) { this.clientId = clientId; return this; }
+        public Builder namespace(String namespace) { this.namespace = namespace; return this; }
         public Builder executionId(String executionId) { this.executionId = executionId; return this; }
         public Builder workflowId(String workflowId) { this.workflowId = workflowId; return this; }
         public Builder workflowName(String workflowName) { this.workflowName = workflowName; return this; }
@@ -217,10 +224,12 @@ public class FailedWorkflow {
         public Builder updatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; return this; }
 
         public FailedWorkflow build() {
-            return new FailedWorkflow(id, clientId, executionId, workflowId, workflowName,
+            FailedWorkflow fw = new FailedWorkflow(id, clientId, executionId, workflowId, workflowName,
                     stepId, stepName, stepType, failureReason, stepConfig,
                     executionContext, retryAttempts, retryCount, status,
                     replayHistory, failedAt, updatedAt);
+            fw.setNamespace(this.namespace);
+            return fw;
         }
     }
 }

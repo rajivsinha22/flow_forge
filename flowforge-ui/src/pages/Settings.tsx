@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react'
-import { Save, Plus, Trash2, Eye, EyeOff, Lock, Building2, Webhook } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Save, Plus, Trash2, Eye, EyeOff, Lock, Building2, Webhook, Copy, Crown, ExternalLink } from 'lucide-react'
 import { getOrgSettings, updateOrgSettings, listEnvVars, setEnvVar, deleteEnvVar } from '../api/settings'
+import { getMe } from '../api/auth'
 import type { OrgSettings, EnvVar } from '../api/settings'
+import { PLAN_META, type Plan } from '../config/planLimits'
 import Spinner from '../components/shared/Spinner'
 
 const MOCK_SETTINGS: OrgSettings = {
@@ -26,9 +29,24 @@ const TIMEZONES = [
   'Australia/Sydney', 'UTC',
 ]
 
+const PLAN_BADGE_COLORS: Record<string, string> = {
+  FREE: 'bg-gray-100 text-gray-700',
+  PRO: 'bg-blue-100 text-blue-700',
+  ENTERPRISE: 'bg-purple-100 text-purple-700',
+}
+
+interface OrgData {
+  id: string
+  orgName: string
+  plan: string
+  createdAt: string
+}
+
 const Settings: React.FC = () => {
   const [settings, setSettings] = useState<OrgSettings | null>(null)
   const [envVars, setEnvVars] = useState<EnvVar[]>([])
+  const [orgData, setOrgData] = useState<OrgData | null>(null)
+  const [copiedId, setCopiedId] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
@@ -36,6 +54,14 @@ const Settings: React.FC = () => {
   const [newEnvVar, setNewEnvVar] = useState({ key: '', value: '', encrypted: false })
   const [showAddEnvVar, setShowAddEnvVar] = useState(false)
   const [visibleVars, setVisibleVars] = useState<Set<string>>(new Set())
+
+  const handleCopyClientId = () => {
+    if (orgData?.id) {
+      navigator.clipboard.writeText(orgData.id)
+      setCopiedId(true)
+      setTimeout(() => setCopiedId(false), 2000)
+    }
+  }
 
   useEffect(() => {
     const fetchData = async () => {
@@ -46,9 +72,24 @@ const Settings: React.FC = () => {
       } catch {
         setSettings(MOCK_SETTINGS)
         setEnvVars(MOCK_ENV_VARS)
-      } finally {
-        setIsLoading(false)
       }
+      try {
+        const me = await getMe() as any
+        setOrgData({
+          id: me.clientId || me.id || '',
+          orgName: me.orgName || '',
+          plan: me.plan || 'FREE',
+          createdAt: me.createdAt || '',
+        })
+      } catch {
+        setOrgData({
+          id: 'client_acme_001',
+          orgName: 'Acme Corp',
+          plan: 'ENTERPRISE',
+          createdAt: '2024-01-15T09:00:00Z',
+        })
+      }
+      setIsLoading(false)
     }
     fetchData()
   }, [])
@@ -106,6 +147,63 @@ const Settings: React.FC = () => {
       {successMsg && (
         <div className="bg-green-50 border border-green-200 text-green-800 rounded-xl px-4 py-3 text-sm mb-6">
           {successMsg}
+        </div>
+      )}
+
+      {/* Organization Overview */}
+      {orgData && (
+        <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-violet-50 rounded-2xl border border-blue-100 shadow-sm p-6 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Building2 size={18} className="text-indigo-600" />
+            <h2 className="font-semibold text-gray-900">Organization</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Client ID */}
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Client ID</label>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 bg-white/80 border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono text-gray-700 truncate">
+                  {orgData.id}
+                </code>
+                <button
+                  onClick={handleCopyClientId}
+                  className="flex items-center gap-1 px-2.5 py-2 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <Copy size={12} />
+                  {copiedId ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
+            </div>
+
+            {/* Organization Name */}
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Organization Name</label>
+              <p className="text-lg font-semibold text-gray-900">{orgData.orgName}</p>
+            </div>
+
+            {/* Plan */}
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Plan</label>
+              <div className="flex items-center gap-2">
+                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${PLAN_BADGE_COLORS[orgData.plan] || PLAN_BADGE_COLORS.FREE}`}>
+                  <Crown size={12} />
+                  {PLAN_META[orgData.plan as Plan]?.label || orgData.plan}
+                </span>
+                <Link to="/billing" className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium">
+                  Manage <ExternalLink size={11} />
+                </Link>
+              </div>
+            </div>
+
+            {/* Created */}
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Created</label>
+              <p className="text-sm text-gray-700">
+                {orgData.createdAt ? new Date(orgData.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'}
+              </p>
+            </div>
+          </div>
         </div>
       )}
 

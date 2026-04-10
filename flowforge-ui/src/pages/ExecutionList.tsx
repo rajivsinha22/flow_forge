@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Search, Filter, Play, Eye, RefreshCw, Pause, XCircle, ChevronDown
+  Filter, Play, Eye, RefreshCw, Pause, XCircle
 } from 'lucide-react'
 import { listExecutions, retryExecution, pauseExecution, cancelExecution } from '../api/executions'
 import type { Execution } from '../types'
+import SearchBar from '../components/shared/SearchBar'
 import StatusBadge from '../components/shared/StatusBadge'
 import Spinner from '../components/shared/Spinner'
 import ConfirmModal from '../components/shared/ConfirmModal'
@@ -24,9 +25,7 @@ const ExecutionList: React.FC = () => {
   const navigate = useNavigate()
   const [executions, setExecutions] = useState<Execution[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
-  const [triggerFilter, setTriggerFilter] = useState('')
+  const [searchState, setSearchState] = useState<{ q: string; status: string; triggerType: string }>({ q: '', status: '', triggerType: '' })
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [cancelTarget, setCancelTarget] = useState<Execution | null>(null)
   const [isCancelling, setIsCancelling] = useState(false)
@@ -46,9 +45,10 @@ const ExecutionList: React.FC = () => {
   }, [])
 
   const filtered = executions.filter((ex) => {
-    const matchSearch = ex.workflowName.toLowerCase().includes(search.toLowerCase()) || ex.id.includes(search)
-    const matchStatus = !statusFilter || ex.status === statusFilter
-    const matchTrigger = !triggerFilter || ex.triggerType === triggerFilter
+    const q = searchState.q.toLowerCase()
+    const matchSearch = !q || ex.workflowName.toLowerCase().includes(q) || ex.id.includes(q)
+    const matchStatus = !searchState.status || ex.status === searchState.status
+    const matchTrigger = !searchState.triggerType || ex.triggerType === searchState.triggerType
     return matchSearch && matchStatus && matchTrigger
   })
 
@@ -127,45 +127,27 @@ const ExecutionList: React.FC = () => {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-6">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by workflow or execution ID..."
-            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <div className="relative">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="pl-3 pr-8 py-2 text-sm border border-gray-300 rounded-xl focus:outline-none appearance-none"
-          >
-            <option value="">All Statuses</option>
-            <option value="SUCCESS">Success</option>
-            <option value="RUNNING">Running</option>
-            <option value="FAILED">Failed</option>
-            <option value="PAUSED">Paused</option>
-            <option value="CANCELLED">Cancelled</option>
-          </select>
-          <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-        </div>
-        <div className="relative">
-          <select
-            value={triggerFilter}
-            onChange={(e) => setTriggerFilter(e.target.value)}
-            className="pl-3 pr-8 py-2 text-sm border border-gray-300 rounded-xl focus:outline-none appearance-none"
-          >
-            <option value="">All Triggers</option>
-            <option value="KAFKA">Kafka</option>
-            <option value="CRON">Cron</option>
-            <option value="API">API</option>
-          </select>
-          <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-        </div>
+      <div className="mb-6">
+        <SearchBar
+          placeholder="Search by workflow or execution ID..."
+          filters={[
+            { key: 'status', label: 'All Statuses', options: [
+              { label: 'Pending', value: 'PENDING' },
+              { label: 'Running', value: 'RUNNING' },
+              { label: 'Success', value: 'SUCCESS' },
+              { label: 'Failed', value: 'FAILED' },
+              { label: 'Paused', value: 'PAUSED' },
+              { label: 'Cancelled', value: 'CANCELLED' },
+            ]},
+            { key: 'triggerType', label: 'All Triggers', options: [
+              { label: 'API', value: 'API' },
+              { label: 'Kafka', value: 'KAFKA' },
+              { label: 'Cron', value: 'CRON' },
+              { label: 'Webhook', value: 'WEBHOOK' },
+            ]},
+          ]}
+          onSearch={(params) => setSearchState({ q: params.q, status: params.status || '', triggerType: params.triggerType || '' })}
+        />
       </div>
 
       {/* Table */}

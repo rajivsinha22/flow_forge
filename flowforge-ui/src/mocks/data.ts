@@ -1,4 +1,5 @@
-import type { SubscriptionStatus, PlanUsage, PaymentEvent, Invoice } from '../types'
+import type { SubscriptionStatus, PlanUsage, PaymentEvent, Invoice, Namespace } from '../types'
+import type { PendingInvitation } from '../api/invitation'
 
 // ─── DUMMY CLIENT / ORG ───────────────────────────────────────────────────────
 export const DUMMY_CLIENT = {
@@ -58,6 +59,7 @@ export const DUMMY_ROLES = [
 export const DUMMY_WORKFLOWS = [
   {
     id: 'wf_001', name: 'order-processing', displayName: 'Order Processing',
+    namespace: 'default',
     triggerType: 'API', version: 3, status: 'PUBLISHED',
     publishedAt: '2025-03-01T10:00:00Z',
     lastRunAt: '2026-03-18T10:00:00Z', lastRunStatus: 'SUCCESS',
@@ -80,6 +82,7 @@ export const DUMMY_WORKFLOWS = [
   },
   {
     id: 'wf_002', name: 'payment-flow', displayName: 'Payment Processing',
+    namespace: 'default',
     triggerType: 'KAFKA', version: 2, status: 'PUBLISHED',
     publishedAt: '2025-02-15T09:00:00Z',
     lastRunAt: '2026-03-18T09:45:00Z', lastRunStatus: 'SUCCESS',
@@ -98,6 +101,7 @@ export const DUMMY_WORKFLOWS = [
   },
   {
     id: 'wf_003', name: 'user-onboarding', displayName: 'User Onboarding',
+    namespace: 'default',
     triggerType: 'KAFKA', version: 1, status: 'PUBLISHED',
     publishedAt: '2025-01-20T14:00:00Z',
     lastRunAt: '2026-03-17T08:00:00Z', lastRunStatus: 'FAILED',
@@ -115,6 +119,7 @@ export const DUMMY_WORKFLOWS = [
   },
   {
     id: 'wf_004', name: 'refund-processor', displayName: 'Refund Processor',
+    namespace: 'default',
     triggerType: 'CRON', version: 1, status: 'DRAFT',
     publishedAt: null,
     lastRunAt: null, lastRunStatus: null,
@@ -130,6 +135,7 @@ export const DUMMY_WORKFLOWS = [
   },
   {
     id: 'wf_005', name: 'email-campaign', displayName: 'Email Campaign',
+    namespace: 'default',
     triggerType: 'API', version: 5, status: 'PUBLISHED',
     publishedAt: '2025-03-10T11:00:00Z',
     lastRunAt: '2026-03-18T07:00:00Z', lastRunStatus: 'SUCCESS',
@@ -147,6 +153,7 @@ export const DUMMY_WORKFLOWS = [
   },
   {
     id: 'wf_006', name: 'fraud-detection', displayName: 'Fraud Detection',
+    namespace: 'default',
     triggerType: 'KAFKA', version: 2, status: 'PUBLISHED',
     publishedAt: '2025-02-28T16:00:00Z',
     lastRunAt: '2026-03-18T10:05:00Z', lastRunStatus: 'SUCCESS',
@@ -171,31 +178,31 @@ const now = new Date('2026-03-18T10:00:00Z')
 const ago = (minutes: number) => new Date(now.getTime() - minutes * 60000).toISOString()
 
 export const DUMMY_EXECUTIONS = [
-  { id: 'exec_001', workflowName: 'order-processing',  workflowVersion: 3, status: 'SUCCESS', triggerType: 'API',     triggeredBy: 'admin@acme.com', startedAt: ago(2),   completedAt: ago(1),   durationMs: 1240, modelRecordId: 'mr-1', dataSyncMode: 'WRITE' as const, modelDataSnapshot: { orderId: 'ORD-2026-0042', customerId: 'CUST-001', amount: 149.99, currency: 'USD', status: 'pending' }, modelDataAfter: { orderId: 'ORD-2026-0042', customerId: 'CUST-001', amount: 149.99, currency: 'USD', status: 'completed', processedAt: '2026-03-10T09:01:24Z', discountApplied: 15.0 } },
-  { id: 'exec_002', workflowName: 'payment-flow',       workflowVersion: 2, status: 'RUNNING', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(1),   completedAt: null,     durationMs: 0 },
-  { id: 'exec_003', workflowName: 'user-onboarding',    workflowVersion: 1, status: 'FAILED',  triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(90),  completedAt: ago(89),  durationMs: 820 },
-  { id: 'exec_004', workflowName: 'order-processing',   workflowVersion: 3, status: 'PAUSED',  triggerType: 'API',     triggeredBy: 'ci@acme.com',    startedAt: ago(30),  completedAt: null,     durationMs: 0 },
-  { id: 'exec_005', workflowName: 'email-campaign',     workflowVersion: 5, status: 'SUCCESS', triggerType: 'API',     triggeredBy: 'priya@acme.com', startedAt: ago(180), completedAt: ago(177), durationMs: 3400 },
-  { id: 'exec_006', workflowName: 'fraud-detection',    workflowVersion: 2, status: 'SUCCESS', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(5),   completedAt: ago(4),   durationMs: 560 },
-  { id: 'exec_007', workflowName: 'order-processing',   workflowVersion: 3, status: 'SUCCESS', triggerType: 'API',     triggeredBy: 'admin@acme.com', startedAt: ago(360), completedAt: ago(359), durationMs: 1100 },
-  { id: 'exec_008', workflowName: 'payment-flow',       workflowVersion: 2, status: 'FAILED',  triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(240), completedAt: ago(239), durationMs: 430 },
-  { id: 'exec_009', workflowName: 'user-onboarding',    workflowVersion: 1, status: 'WAITING', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(45),  completedAt: null,     durationMs: 0 },
-  { id: 'exec_010', workflowName: 'fraud-detection',    workflowVersion: 2, status: 'SUCCESS', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(10),  completedAt: ago(9),   durationMs: 590 },
-  { id: 'exec_011', workflowName: 'order-processing',   workflowVersion: 3, status: 'SUCCESS', triggerType: 'API',     triggeredBy: 'ci@acme.com',    startedAt: ago(720), completedAt: ago(719), durationMs: 980 },
-  { id: 'exec_012', workflowName: 'email-campaign',     workflowVersion: 5, status: 'FAILED',  triggerType: 'CRON',    triggeredBy: 'cron-trigger',   startedAt: ago(1440),completedAt: ago(1439),durationMs: 760 },
-  { id: 'exec_013', workflowName: 'payment-flow',       workflowVersion: 2, status: 'SUCCESS', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(480), completedAt: ago(478), durationMs: 2100 },
-  { id: 'exec_014', workflowName: 'fraud-detection',    workflowVersion: 2, status: 'SUCCESS', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(15),  completedAt: ago(14),  durationMs: 610 },
-  { id: 'exec_015', workflowName: 'order-processing',   workflowVersion: 2, status: 'SUCCESS', triggerType: 'API',     triggeredBy: 'admin@acme.com', startedAt: ago(1500),completedAt: ago(1499),durationMs: 1350 },
-  { id: 'exec_016', workflowName: 'user-onboarding',    workflowVersion: 1, status: 'SUCCESS', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(600), completedAt: ago(597), durationMs: 3020 },
-  { id: 'exec_017', workflowName: 'email-campaign',     workflowVersion: 5, status: 'SUCCESS', triggerType: 'API',     triggeredBy: 'priya@acme.com', startedAt: ago(800), completedAt: ago(797), durationMs: 3600 },
-  { id: 'exec_018', workflowName: 'payment-flow',       workflowVersion: 2, status: 'FAILED',  triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(900), completedAt: ago(899), durationMs: 340 },
-  { id: 'exec_019', workflowName: 'fraud-detection',    workflowVersion: 2, status: 'SUCCESS', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(20),  completedAt: ago(19),  durationMs: 580 },
-  { id: 'exec_020', workflowName: 'order-processing',   workflowVersion: 3, status: 'SUCCESS', triggerType: 'API',     triggeredBy: 'ci@acme.com',    startedAt: ago(25),  completedAt: ago(24),  durationMs: 1190 },
-  { id: 'exec_021', workflowName: 'user-onboarding',    workflowVersion: 1, status: 'FAILED',  triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(2880),completedAt: ago(2879),durationMs: 950 },
-  { id: 'exec_022', workflowName: 'fraud-detection',    workflowVersion: 2, status: 'SUCCESS', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(35),  completedAt: ago(34),  durationMs: 610 },
-  { id: 'exec_023', workflowName: 'order-processing',   workflowVersion: 3, status: 'RUNNING', triggerType: 'API',     triggeredBy: 'admin@acme.com', startedAt: ago(3),   completedAt: null,     durationMs: 0 },
-  { id: 'exec_024', workflowName: 'email-campaign',     workflowVersion: 5, status: 'SUCCESS', triggerType: 'CRON',    triggeredBy: 'cron-trigger',   startedAt: ago(1500),completedAt: ago(1497),durationMs: 4100 },
-  { id: 'exec_025', workflowName: 'payment-flow',       workflowVersion: 2, status: 'SUCCESS', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(60),  completedAt: ago(58),  durationMs: 1800 },
+  { id: 'exec_001', namespace: 'default', workflowName: 'order-processing',  workflowVersion: 3, status: 'SUCCESS', triggerType: 'API',     triggeredBy: 'admin@acme.com', startedAt: ago(2),   completedAt: ago(1),   durationMs: 1240, modelRecordId: 'mr-1', dataSyncMode: 'WRITE' as const, modelDataSnapshot: { orderId: 'ORD-2026-0042', customerId: 'CUST-001', amount: 149.99, currency: 'USD', status: 'pending' }, modelDataAfter: { orderId: 'ORD-2026-0042', customerId: 'CUST-001', amount: 149.99, currency: 'USD', status: 'completed', processedAt: '2026-03-10T09:01:24Z', discountApplied: 15.0 } },
+  { id: 'exec_002', namespace: 'default', workflowName: 'payment-flow',       workflowVersion: 2, status: 'RUNNING', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(1),   completedAt: null,     durationMs: 0 },
+  { id: 'exec_003', namespace: 'default', workflowName: 'user-onboarding',    workflowVersion: 1, status: 'FAILED',  triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(90),  completedAt: ago(89),  durationMs: 820 },
+  { id: 'exec_004', namespace: 'default', workflowName: 'order-processing',   workflowVersion: 3, status: 'PAUSED',  triggerType: 'API',     triggeredBy: 'ci@acme.com',    startedAt: ago(30),  completedAt: null,     durationMs: 0 },
+  { id: 'exec_005', namespace: 'default', workflowName: 'email-campaign',     workflowVersion: 5, status: 'SUCCESS', triggerType: 'API',     triggeredBy: 'priya@acme.com', startedAt: ago(180), completedAt: ago(177), durationMs: 3400 },
+  { id: 'exec_006', namespace: 'default', workflowName: 'fraud-detection',    workflowVersion: 2, status: 'SUCCESS', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(5),   completedAt: ago(4),   durationMs: 560 },
+  { id: 'exec_007', namespace: 'default', workflowName: 'order-processing',   workflowVersion: 3, status: 'SUCCESS', triggerType: 'API',     triggeredBy: 'admin@acme.com', startedAt: ago(360), completedAt: ago(359), durationMs: 1100 },
+  { id: 'exec_008', namespace: 'default', workflowName: 'payment-flow',       workflowVersion: 2, status: 'FAILED',  triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(240), completedAt: ago(239), durationMs: 430 },
+  { id: 'exec_009', namespace: 'default', workflowName: 'user-onboarding',    workflowVersion: 1, status: 'WAITING', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(45),  completedAt: null,     durationMs: 0 },
+  { id: 'exec_010', namespace: 'default', workflowName: 'fraud-detection',    workflowVersion: 2, status: 'SUCCESS', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(10),  completedAt: ago(9),   durationMs: 590 },
+  { id: 'exec_011', namespace: 'default', workflowName: 'order-processing',   workflowVersion: 3, status: 'SUCCESS', triggerType: 'API',     triggeredBy: 'ci@acme.com',    startedAt: ago(720), completedAt: ago(719), durationMs: 980 },
+  { id: 'exec_012', namespace: 'default', workflowName: 'email-campaign',     workflowVersion: 5, status: 'FAILED',  triggerType: 'CRON',    triggeredBy: 'cron-trigger',   startedAt: ago(1440),completedAt: ago(1439),durationMs: 760 },
+  { id: 'exec_013', namespace: 'default', workflowName: 'payment-flow',       workflowVersion: 2, status: 'SUCCESS', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(480), completedAt: ago(478), durationMs: 2100 },
+  { id: 'exec_014', namespace: 'default', workflowName: 'fraud-detection',    workflowVersion: 2, status: 'SUCCESS', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(15),  completedAt: ago(14),  durationMs: 610 },
+  { id: 'exec_015', namespace: 'default', workflowName: 'order-processing',   workflowVersion: 2, status: 'SUCCESS', triggerType: 'API',     triggeredBy: 'admin@acme.com', startedAt: ago(1500),completedAt: ago(1499),durationMs: 1350 },
+  { id: 'exec_016', namespace: 'default', workflowName: 'user-onboarding',    workflowVersion: 1, status: 'SUCCESS', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(600), completedAt: ago(597), durationMs: 3020 },
+  { id: 'exec_017', namespace: 'default', workflowName: 'email-campaign',     workflowVersion: 5, status: 'SUCCESS', triggerType: 'API',     triggeredBy: 'priya@acme.com', startedAt: ago(800), completedAt: ago(797), durationMs: 3600 },
+  { id: 'exec_018', namespace: 'default', workflowName: 'payment-flow',       workflowVersion: 2, status: 'FAILED',  triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(900), completedAt: ago(899), durationMs: 340 },
+  { id: 'exec_019', namespace: 'default', workflowName: 'fraud-detection',    workflowVersion: 2, status: 'SUCCESS', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(20),  completedAt: ago(19),  durationMs: 580 },
+  { id: 'exec_020', namespace: 'default', workflowName: 'order-processing',   workflowVersion: 3, status: 'SUCCESS', triggerType: 'API',     triggeredBy: 'ci@acme.com',    startedAt: ago(25),  completedAt: ago(24),  durationMs: 1190 },
+  { id: 'exec_021', namespace: 'default', workflowName: 'user-onboarding',    workflowVersion: 1, status: 'FAILED',  triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(2880),completedAt: ago(2879),durationMs: 950 },
+  { id: 'exec_022', namespace: 'default', workflowName: 'fraud-detection',    workflowVersion: 2, status: 'SUCCESS', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(35),  completedAt: ago(34),  durationMs: 610 },
+  { id: 'exec_023', namespace: 'default', workflowName: 'order-processing',   workflowVersion: 3, status: 'RUNNING', triggerType: 'API',     triggeredBy: 'admin@acme.com', startedAt: ago(3),   completedAt: null,     durationMs: 0 },
+  { id: 'exec_024', namespace: 'default', workflowName: 'email-campaign',     workflowVersion: 5, status: 'SUCCESS', triggerType: 'CRON',    triggeredBy: 'cron-trigger',   startedAt: ago(1500),completedAt: ago(1497),durationMs: 4100 },
+  { id: 'exec_025', namespace: 'default', workflowName: 'payment-flow',       workflowVersion: 2, status: 'SUCCESS', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(60),  completedAt: ago(58),  durationMs: 1800 },
 ]
 
 // ─── STEP EXECUTIONS for exec_001 (order-processing, SUCCESS) ─────────────────
@@ -897,4 +904,35 @@ export const DUMMY_INVOICES: Invoice[] = [
   { id: 'inv_001', number: 'FF-2026-0042', amount: 4900, currency: 'usd', status: 'paid', periodStart: new Date(Date.now() - 30 * 86400000).toISOString(), periodEnd: new Date(Date.now()).toISOString(), createdAt: new Date(Date.now() - 2 * 86400000).toISOString() },
   { id: 'inv_002', number: 'FF-2026-0031', amount: 4900, currency: 'usd', status: 'paid', periodStart: new Date(Date.now() - 60 * 86400000).toISOString(), periodEnd: new Date(Date.now() - 30 * 86400000).toISOString(), createdAt: new Date(Date.now() - 32 * 86400000).toISOString() },
   { id: 'inv_003', number: 'FF-2026-0020', amount: 4900, currency: 'usd', status: 'paid', periodStart: new Date(Date.now() - 90 * 86400000).toISOString(), periodEnd: new Date(Date.now() - 60 * 86400000).toISOString(), createdAt: new Date(Date.now() - 62 * 86400000).toISOString() },
+]
+
+// ─── DUMMY INVITATIONS ──────────────────────────────────────────────────────
+export const DUMMY_INVITATIONS: PendingInvitation[] = [
+  {
+    id: 'inv_001',
+    token: 'abc123-def456-ghi789',
+    email: 'newuser@acme.com',
+    name: 'New User',
+    roles: ['WORKFLOW_VIEWER'],
+    status: 'PENDING',
+    expiresAt: new Date(Date.now() + 48 * 3600000).toISOString(),
+    createdAt: new Date(Date.now() - 24 * 3600000).toISOString(),
+  },
+  {
+    id: 'inv_002',
+    token: 'xyz789-abc123-def456',
+    email: 'analyst@acme.com',
+    name: 'Data Analyst',
+    roles: ['WORKFLOW_MANAGER'],
+    status: 'PENDING',
+    expiresAt: new Date(Date.now() + 60 * 3600000).toISOString(),
+    createdAt: new Date(Date.now() - 12 * 3600000).toISOString(),
+  },
+]
+
+// ─── DUMMY NAMESPACES ────────────────────────────────────────────────────────
+export const DUMMY_NAMESPACES: Namespace[] = [
+  { id: 'ns_001', name: 'default', displayName: 'Default', description: 'Default namespace for all resources', createdBy: 'user_001', createdAt: new Date(Date.now() - 90 * 86400000).toISOString() },
+  { id: 'ns_002', name: 'production', displayName: 'Production', description: 'Production environment workflows', createdBy: 'user_001', createdAt: new Date(Date.now() - 60 * 86400000).toISOString() },
+  { id: 'ns_003', name: 'staging', displayName: 'Staging', description: 'Staging and testing workflows', createdBy: 'user_001', createdAt: new Date(Date.now() - 30 * 86400000).toISOString() },
 ]

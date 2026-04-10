@@ -12,8 +12,8 @@ import java.util.Objects;
 
 @Document("workflow_definitions")
 @CompoundIndexes({
-    @CompoundIndex(name = "client_name_idx", def = "{'clientId': 1, 'name': 1}"),
-    @CompoundIndex(name = "client_name_active_idx", def = "{'clientId': 1, 'name': 1, 'activeVersion': 1}")
+    @CompoundIndex(name = "client_name_idx", def = "{'clientId': 1, 'namespace': 1, 'name': 1}"),
+    @CompoundIndex(name = "client_name_active_idx", def = "{'clientId': 1, 'namespace': 1, 'name': 1, 'activeVersion': 1}")
 })
 public class WorkflowDefinition {
 
@@ -21,7 +21,8 @@ public class WorkflowDefinition {
     private String id;
 
     private String clientId;
-    private String name;          // unique per client
+    private String namespace = "default";
+    private String name;          // unique per client + namespace
     private String displayName;
     private String description;
     private int version;
@@ -89,6 +90,9 @@ public class WorkflowDefinition {
 
     public String getClientId() { return clientId; }
     public void setClientId(String clientId) { this.clientId = clientId; }
+
+    public String getNamespace() { return namespace; }
+    public void setNamespace(String namespace) { this.namespace = namespace; }
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
@@ -181,6 +185,7 @@ public class WorkflowDefinition {
                 activeVersion == that.activeVersion &&
                 Objects.equals(id, that.id) &&
                 Objects.equals(clientId, that.clientId) &&
+                Objects.equals(namespace, that.namespace) &&
                 Objects.equals(name, that.name) &&
                 Objects.equals(displayName, that.displayName) &&
                 Objects.equals(description, that.description) &&
@@ -202,7 +207,7 @@ public class WorkflowDefinition {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, clientId, name, displayName, description, version, activeVersion,
+        return Objects.hash(id, clientId, namespace, name, displayName, description, version, activeVersion,
                 status, triggerType, cronExpression, kafkaTopic, inputSchema, variables, steps,
                 edges, publishedBy, publishedAt, changeLog, createdBy, createdAt, updatedAt);
     }
@@ -212,6 +217,7 @@ public class WorkflowDefinition {
         return "WorkflowDefinition{" +
                 "id='" + id + '\'' +
                 ", clientId='" + clientId + '\'' +
+                ", namespace='" + namespace + '\'' +
                 ", name='" + name + '\'' +
                 ", version=" + version +
                 ", activeVersion=" + activeVersion +
@@ -225,6 +231,7 @@ public class WorkflowDefinition {
     public static class Builder {
         private String id;
         private String clientId;
+        private String namespace = "default";
         private String name;
         private String displayName;
         private String description;
@@ -249,6 +256,7 @@ public class WorkflowDefinition {
 
         public Builder id(String id) { this.id = id; return this; }
         public Builder clientId(String clientId) { this.clientId = clientId; return this; }
+        public Builder namespace(String namespace) { this.namespace = namespace; return this; }
         public Builder name(String name) { this.name = name; return this; }
         public Builder displayName(String displayName) { this.displayName = displayName; return this; }
         public Builder description(String description) { this.description = description; return this; }
@@ -275,6 +283,7 @@ public class WorkflowDefinition {
             WorkflowDefinition w = new WorkflowDefinition();
             w.id = this.id;
             w.clientId = this.clientId;
+            w.namespace = this.namespace;
             w.name = this.name;
             w.displayName = this.displayName;
             w.description = this.description;

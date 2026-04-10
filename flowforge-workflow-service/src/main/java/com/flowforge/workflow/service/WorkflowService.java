@@ -34,16 +34,23 @@ public class WorkflowService {
         this.workflowRepository = workflowRepository;
     }
 
-    public Page<WorkflowDefinition> listWorkflows(String clientId, String status, String triggerType, Pageable pageable) {
-        log.debug("Listing workflows for clientId={}, status={}, triggerType={}", clientId, status, triggerType);
+    public Page<WorkflowDefinition> listWorkflows(String clientId, String status, String triggerType, String query, Pageable pageable) {
+        String namespace = TenantContext.getNamespace();
+        log.debug("Listing workflows for clientId={}, namespace={}, status={}, triggerType={}, q={}", clientId, namespace, status, triggerType, query);
+
+        // Text search takes priority — delegates filtering to the regex query
+        if (StringUtils.hasText(query)) {
+            return workflowRepository.searchByClientIdAndNamespace(clientId, namespace, query, pageable);
+        }
+
         if (StringUtils.hasText(status) && StringUtils.hasText(triggerType)) {
             return workflowRepository.findByClientIdAndStatusAndTriggerType(clientId, status, triggerType, pageable);
         } else if (StringUtils.hasText(status)) {
-            return workflowRepository.findByClientIdAndStatus(clientId, status, pageable);
+            return workflowRepository.findByClientIdAndNamespaceAndStatus(clientId, namespace, status, pageable);
         } else if (StringUtils.hasText(triggerType)) {
             return workflowRepository.findByClientIdAndTriggerType(clientId, triggerType, pageable);
         }
-        return workflowRepository.findByClientId(clientId, pageable);
+        return workflowRepository.findByClientIdAndNamespace(clientId, namespace, pageable);
     }
 
     public WorkflowDefinition createWorkflow(String clientId, CreateWorkflowRequest request, String createdBy) {
@@ -58,17 +65,19 @@ public class WorkflowService {
             throw new PlanLimitExceededException(plan, "workflows", workflowCount, limits.getMaxWorkflows());
         }
 
-        // Check name uniqueness for active version
-        workflowRepository.findByClientIdAndNameAndActiveVersionTrue(clientId, request.getName())
+        // Check name uniqueness for active version within namespace
+        String namespace = TenantContext.getNamespace();
+        workflowRepository.findByClientIdAndNamespaceAndNameAndActiveVersionTrue(clientId, namespace, request.getName())
                 .ifPresent(existing -> {
                     throw new ResponseStatusException(HttpStatus.CONFLICT,
-                            "An active workflow with name '" + request.getName() + "' already exists");
+                            "An active workflow with name '" + request.getName() + "' already exists in namespace '" + namespace + "'");
                 });
 
         LocalDateTime now = LocalDateTime.now();
         WorkflowDefinition workflow = WorkflowDefinition.builder()
                 .id(UUID.randomUUID().toString())
                 .clientId(clientId)
+                .namespace(namespace)
                 .name(request.getName())
                 .displayName(request.getDisplayName())
                 .description(request.getDescription())
@@ -159,6 +168,7 @@ public class WorkflowService {
         WorkflowDefinition clone = WorkflowDefinition.builder()
                 .id(UUID.randomUUID().toString())
                 .clientId(clientId)
+                .namespace(source.getNamespace())
                 .name(clonedName)
                 .displayName(source.getDisplayName() + " (Copy)")
                 .description(source.getDescription())
@@ -181,7 +191,8 @@ public class WorkflowService {
     }
 
     public List<WorkflowDefinition> getVersionsByName(String clientId, String name) {
-        return workflowRepository.findByClientIdAndName(clientId, name);
+        String namespace = TenantContext.getNamespace();
+        return workflowRepository.findByClientIdAndNamespaceAndName(clientId, namespace, name);
     }
 
     public WorkflowSummaryDto toSummary(WorkflowDefinition workflow) {

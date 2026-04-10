@@ -4,6 +4,7 @@ import com.flowforge.integration.model.EventTriggerConfig;
 import com.flowforge.integration.model.TriggerActivationLog;
 import com.flowforge.integration.repository.EventTriggerConfigRepository;
 import com.flowforge.integration.repository.TriggerActivationLogRepository;
+import com.flowforge.integration.config.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -33,7 +34,8 @@ public class TriggerService {
      * List all triggers for the given client.
      */
     public List<EventTriggerConfig> listTriggers(String clientId) {
-        return triggerRepository.findByClientId(clientId);
+        String namespace = TenantContext.getNamespace();
+        return triggerRepository.findByClientIdAndNamespace(clientId, namespace);
     }
 
     /**
@@ -43,6 +45,7 @@ public class TriggerService {
     public EventTriggerConfig createTrigger(String clientId, EventTriggerConfig config) {
         config.setId(UUID.randomUUID().toString());
         config.setClientId(clientId);
+        config.setNamespace(TenantContext.getNamespace());
         config.setCreatedAt(LocalDateTime.now());
         config.setUpdatedAt(LocalDateTime.now());
 

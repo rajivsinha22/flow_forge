@@ -45,11 +45,13 @@ public class JwtAuthFilter extends AbstractGatewayFilterFactory<JwtAuthFilter.Co
                 String clientId = claims.get("clientId", String.class);
                 String userId = claims.get("userId", String.class);
                 String plan = claims.get("plan", String.class);
+                String namespace = request.getHeaders().getFirst("X-Namespace");
 
                 ServerHttpRequest mutatedRequest = request.mutate()
                         .header("X-Client-Id", clientId != null ? clientId : "")
                         .header("X-User-Id", userId != null ? userId : "")
                         .header("X-Client-Plan", plan != null ? plan : "FREE")
+                        .header("X-Namespace", namespace != null ? namespace : "default")
                         .build();
 
                 return chain.filter(exchange.mutate().request(mutatedRequest).build());

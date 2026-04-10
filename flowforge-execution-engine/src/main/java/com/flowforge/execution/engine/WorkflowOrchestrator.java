@@ -145,10 +145,12 @@ public class WorkflowOrchestrator {
         }
 
         // Initialize execution record, storing the workflow definition snapshot for trace queries
+        String namespace = TenantContext.getNamespace();
         LocalDateTime now = LocalDateTime.now();
         WorkflowExecution execution = WorkflowExecution.builder()
                 .id(UUID.randomUUID().toString())
                 .clientId(clientId)
+                .namespace(namespace)
                 .workflowId(definition.getId())
                 .workflowName(definition.getName())
                 .workflowVersion(definition.getVersion())
@@ -311,6 +313,7 @@ public class WorkflowOrchestrator {
                 .id(UUID.randomUUID().toString())
                 .executionId(executionId)
                 .clientId(clientId)
+                .namespace(TenantContext.getNamespace())
                 .stepId(step.getStepId())
                 .stepName(step.getName())
                 .stepType(step.getType())

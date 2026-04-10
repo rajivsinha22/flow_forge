@@ -22,6 +22,7 @@ export interface Workflow {
   inputModelId?: string
   /** Data sync mode for linked input model records: "READ" or "WRITE". Only when inputModelId is set. */
   dataSyncMode?: 'READ' | 'WRITE'
+  namespace?: string
   publishedAt?: string
   createdAt?: string
   updatedAt?: string
@@ -73,6 +74,7 @@ export interface Execution {
   modelDataSnapshot?: Record<string, unknown>
   /** Updated model data after successful WRITE-scope execution. */
   modelDataAfter?: Record<string, unknown>
+  namespace?: string
 }
 
 export interface ModelRecord {
@@ -167,6 +169,7 @@ export interface Trigger {
   resumeTokenPath?: string
   resumeExecutionId?: string
   resumeStepId?: string
+  namespace?: string
   enabled: boolean
   createdAt: string
 }
@@ -309,6 +312,17 @@ export interface WaitToken {
   expiresAt?: string;
   createdAt: string;
   resumedAt?: string;
+}
+
+// ── Namespaces ──────────────────────────────────────────────────────────────
+
+export interface Namespace {
+  id: string
+  name: string
+  displayName: string
+  description?: string
+  createdBy?: string
+  createdAt: string
 }
 
 // ── Billing & Subscription ──────────────────────────────────────────────────

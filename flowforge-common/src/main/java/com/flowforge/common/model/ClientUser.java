@@ -25,13 +25,16 @@ public class ClientUser {
 
     private UserStatus status;
 
+    private List<String> assignedNamespaces;
+
     private Instant createdAt;
 
     public ClientUser() {
     }
 
     public ClientUser(String id, String clientId, String name, String email, String passwordHash,
-                      List<String> roles, UserStatus status, Instant createdAt) {
+                      List<String> roles, UserStatus status, List<String> assignedNamespaces,
+                      Instant createdAt) {
         this.id = id;
         this.clientId = clientId;
         this.name = name;
@@ -39,6 +42,7 @@ public class ClientUser {
         this.passwordHash = passwordHash;
         this.roles = roles;
         this.status = status;
+        this.assignedNamespaces = assignedNamespaces;
         this.createdAt = createdAt;
     }
 
@@ -102,6 +106,14 @@ public class ClientUser {
         return createdAt;
     }
 
+    public List<String> getAssignedNamespaces() {
+        return assignedNamespaces;
+    }
+
+    public void setAssignedNamespaces(List<String> assignedNamespaces) {
+        this.assignedNamespaces = assignedNamespaces;
+    }
+
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
     }
@@ -116,6 +128,7 @@ public class ClientUser {
                 ", passwordHash='" + passwordHash + '\'' +
                 ", roles=" + roles +
                 ", status=" + status +
+                ", assignedNamespaces=" + assignedNamespaces +
                 ", createdAt=" + createdAt +
                 '}';
     }
@@ -132,12 +145,13 @@ public class ClientUser {
                 Objects.equals(passwordHash, that.passwordHash) &&
                 Objects.equals(roles, that.roles) &&
                 status == that.status &&
+                Objects.equals(assignedNamespaces, that.assignedNamespaces) &&
                 Objects.equals(createdAt, that.createdAt);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, clientId, name, email, passwordHash, roles, status, createdAt);
+        return Objects.hash(id, clientId, name, email, passwordHash, roles, status, assignedNamespaces, createdAt);
     }
 
     public static Builder builder() {
@@ -152,6 +166,7 @@ public class ClientUser {
         private String passwordHash;
         private List<String> roles;
         private UserStatus status;
+        private List<String> assignedNamespaces;
         private Instant createdAt;
 
         public Builder id(String id) {
@@ -189,13 +204,18 @@ public class ClientUser {
             return this;
         }
 
+        public Builder assignedNamespaces(List<String> assignedNamespaces) {
+            this.assignedNamespaces = assignedNamespaces;
+            return this;
+        }
+
         public Builder createdAt(Instant createdAt) {
             this.createdAt = createdAt;
             return this;
         }
 
         public ClientUser build() {
-            return new ClientUser(id, clientId, name, email, passwordHash, roles, status, createdAt);
+            return new ClientUser(id, clientId, name, email, passwordHash, roles, status, assignedNamespaces, createdAt);
         }
     }
 

@@ -20,13 +20,15 @@ import java.util.Objects;
  * The {@code schemaJson} field stores a JSON Schema Draft-07 document as a raw string.
  */
 @Document("data_models")
-@CompoundIndex(name = "client_name_unique_idx", def = "{'clientId': 1, 'name': 1}", unique = true)
+@CompoundIndex(name = "client_name_unique_idx", def = "{'clientId': 1, 'namespace': 1, 'name': 1}", unique = true)
 public class DataModel {
 
     @Id
     private String id;
 
     private String clientId;
+
+    private String namespace = "default";
 
     /** Human-readable unique name within the org (e.g. "OrderRequest", "UserPayload") */
     private String name;
@@ -74,6 +76,9 @@ public class DataModel {
     public String getClientId() { return clientId; }
     public void setClientId(String clientId) { this.clientId = clientId; }
 
+    public String getNamespace() { return namespace; }
+    public void setNamespace(String namespace) { this.namespace = namespace; }
+
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 
@@ -109,29 +114,31 @@ public class DataModel {
         return active == that.active &&
                 Objects.equals(id, that.id) &&
                 Objects.equals(clientId, that.clientId) &&
+                Objects.equals(namespace, that.namespace) &&
                 Objects.equals(name, that.name);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, clientId, name);
+        return Objects.hash(id, clientId, namespace, name);
     }
 
     @Override
     public String toString() {
-        return "DataModel{id='" + id + "', clientId='" + clientId + "', name='" + name + "'}";
+        return "DataModel{id='" + id + "', clientId='" + clientId + "', namespace='" + namespace + "', name='" + name + "'}";
     }
 
     public static Builder builder() { return new Builder(); }
 
     public static class Builder {
-        private String id, clientId, name, description, schemaJson, tags, createdBy;
+        private String id, clientId, namespace = "default", name, description, schemaJson, tags, createdBy;
         private List<String> fieldNames;
         private boolean active = true;
         private LocalDateTime createdAt, updatedAt;
 
         public Builder id(String id) { this.id = id; return this; }
         public Builder clientId(String clientId) { this.clientId = clientId; return this; }
+        public Builder namespace(String namespace) { this.namespace = namespace; return this; }
         public Builder name(String name) { this.name = name; return this; }
         public Builder description(String description) { this.description = description; return this; }
         public Builder schemaJson(String schemaJson) { this.schemaJson = schemaJson; return this; }
@@ -146,6 +153,7 @@ public class DataModel {
             DataModel m = new DataModel();
             m.id = this.id;
             m.clientId = this.clientId;
+            m.namespace = this.namespace;
             m.name = this.name;
             m.description = this.description;
             m.schemaJson = this.schemaJson;

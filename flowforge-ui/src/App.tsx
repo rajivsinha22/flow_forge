@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
 
@@ -8,6 +9,7 @@ import AppLayout from './components/layout/AppLayout'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Register from './pages/Register'
+const SetPassword = lazy(() => import('./pages/SetPassword'))
 
 // Protected pages
 import Dashboard from './pages/Dashboard'
@@ -26,6 +28,7 @@ import AuditLogs from './pages/AuditLogs'
 import Settings from './pages/Settings'
 import Billing from './pages/Billing'
 import Models from './pages/Models'
+const NamespaceManagement = lazy(() => import('./pages/NamespaceManagement'))
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore()
@@ -42,6 +45,7 @@ function App() {
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/invite/:token" element={<Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /></div>}><SetPassword /></Suspense>} />
 
       {/* Protected routes inside AppLayout */}
       <Route element={<AppLayout />}>
@@ -71,6 +75,7 @@ function App() {
         <Route path="/settings" element={<Settings />} />
         <Route path="/billing" element={<Billing />} />
         <Route path="/models" element={<Models />} />
+        <Route path="/namespaces" element={<Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /></div>}><NamespaceManagement /></Suspense>} />
       </Route>
 
       {/* Catch-all */}

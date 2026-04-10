@@ -11,6 +11,7 @@ import {
   DUMMY_RATE_LIMITS, DUMMY_ANALYTICS_SUMMARY, DUMMY_EXECUTION_TREND,
   DUMMY_ENV_VARS, DUMMY_WORKFLOW_VERSIONS, DUMMY_MODEL_RECORDS,
   DUMMY_SUBSCRIPTION, DUMMY_PLAN_USAGE, DUMMY_PAYMENT_EVENTS, DUMMY_INVOICES,
+  DUMMY_INVITATIONS, DUMMY_NAMESPACES,
 } from './data'
 
 // Wraps data in backend's ApiResponse envelope
@@ -116,6 +117,14 @@ export function setupMockHandlers(axiosInstance: AxiosInstance) {
     const params = config.params || {}
     let workflows = [...DUMMY_WORKFLOWS]
     if (params.status) workflows = workflows.filter(w => w.status === params.status)
+    if (params.q) {
+      const q = params.q.toLowerCase()
+      workflows = workflows.filter(w =>
+        w.name.toLowerCase().includes(q) ||
+        w.displayName.toLowerCase().includes(q) ||
+        (w.description || '').toLowerCase().includes(q)
+      )
+    }
     if (params.search) {
       const q = params.search.toLowerCase()
       workflows = workflows.filter(w =>
@@ -210,6 +219,16 @@ export function setupMockHandlers(axiosInstance: AxiosInstance) {
     let execs = [...DUMMY_EXECUTIONS]
     if (params.status) execs = execs.filter(e => e.status === params.status)
     if (params.workflowName) execs = execs.filter(e => e.workflowName === params.workflowName)
+    if (params.q) {
+      const q = params.q.toLowerCase()
+      execs = execs.filter(e =>
+        e.workflowName.toLowerCase().includes(q) ||
+        e.id.toLowerCase().includes(q)
+      )
+    }
+    if (params.modelRecordId) {
+      execs = execs.filter((e: any) => e.modelRecordId === params.modelRecordId)
+    }
     return ok(paginate(execs, params.page, params.size))
   })
 
@@ -496,4 +515,65 @@ export function setupMockHandlers(axiosInstance: AxiosInstance) {
   mock.onPost(/\/billing\/cancel$/).reply(200, { success: true, data: null, message: 'Subscription cancelled' })
   mock.onGet(/\/billing\/payments$/).reply(200, { success: true, data: DUMMY_PAYMENT_EVENTS })
   mock.onGet(/\/billing\/invoices$/).reply(200, { success: true, data: DUMMY_INVOICES })
+
+  // ── INVITATIONS ──────────────────────────────────────────────────────────
+  mock.onGet(/\/auth\/invite\/[a-zA-Z0-9-]+$/).reply(200, {
+    success: true,
+    data: {
+      token: 'abc123-def456-ghi789',
+      email: 'newuser@acme.com',
+      name: 'New User',
+      orgName: 'Acme Corp',
+      status: 'PENDING',
+      expiresAt: new Date(Date.now() + 48 * 3600000).toISOString(),
+      createdAt: new Date(Date.now() - 24 * 3600000).toISOString(),
+    }
+  })
+
+  mock.onPost(/\/auth\/accept-invite$/).reply(200, {
+    success: true,
+    data: {
+      user: DUMMY_ME,
+      token: 'mock_jwt_token_accepted',
+      expiresIn: 86400,
+    }
+  })
+
+  mock.onGet(/\/users\/invitations$/).reply(200, {
+    success: true,
+    data: DUMMY_INVITATIONS
+  })
+
+  mock.onPost(/\/users\/invitations\/[a-zA-Z0-9_]+\/resend$/).reply(200, {
+    success: true,
+    data: null,
+    message: 'Invitation resent'
+  })
+
+  mock.onDelete(/\/users\/invitations\/[a-zA-Z0-9_]+$/).reply(200, {
+    success: true,
+    data: null,
+    message: 'Invitation revoked'
+  })
+
+  // ── NAMESPACES ──────────────────────────────────────────────────────────
+  mock.onGet(/\/namespaces$/).reply(200, { success: true, data: DUMMY_NAMESPACES })
+
+  mock.onPost(/\/namespaces$/).reply((config) => {
+    const body = JSON.parse(config.data)
+    const newNs = {
+      id: 'ns_' + Date.now(),
+      name: body.name,
+      displayName: body.displayName,
+      description: body.description || '',
+      createdBy: 'user_001',
+      createdAt: new Date().toISOString(),
+    }
+    return [200, { success: true, data: newNs }]
+  })
+
+  mock.onDelete(/\/namespaces\/[a-z0-9-]+$/).reply(200, { success: true, data: null, message: 'Namespace deleted' })
+
+  mock.onGet(/\/users\/[a-zA-Z0-9_]+\/namespaces$/).reply(200, { success: true, data: ['default', 'production'] })
+  mock.onPut(/\/users\/[a-zA-Z0-9_]+\/namespaces$/).reply(200, { success: true, data: null, message: 'Namespaces assigned' })
 }

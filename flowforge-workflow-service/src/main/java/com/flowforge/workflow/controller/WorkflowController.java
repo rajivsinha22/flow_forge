@@ -80,6 +80,7 @@ public class WorkflowController {
             @RequestHeader("X-Client-Id") String clientId,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String triggerType,
+            @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
@@ -90,7 +91,7 @@ public class WorkflowController {
                 : Sort.by(sortBy).descending();
 
         Page<WorkflowDefinition> workflows = workflowService.listWorkflows(
-                clientId, status, triggerType, PageRequest.of(page, size, sort));
+                clientId, status, triggerType, q, PageRequest.of(page, size, sort));
 
         Page<WorkflowSummaryDto> summaries = workflows.map(workflowService::toSummary);
         return ResponseEntity.ok(ApiResponse.success(summaries));

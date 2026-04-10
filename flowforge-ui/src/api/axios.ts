@@ -18,6 +18,8 @@ if (isDummyMode) {
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('ff_token')
   if (token) config.headers.Authorization = `Bearer ${token}`
+  const namespace = localStorage.getItem('ff_namespace') || 'default'
+  config.headers['X-Namespace'] = namespace
   return config
 })
 

@@ -41,9 +41,10 @@ public class ModelRecordController {
     @GetMapping
     public ResponseEntity<ApiResponse<List<ModelRecord>>> listRecords(
             @RequestHeader("X-Client-Id") String clientId,
-            @RequestParam(required = false) String dataModelId) {
+            @RequestParam(required = false) String dataModelId,
+            @RequestParam(required = false) String q) {
 
-        List<ModelRecord> records = modelRecordService.list(clientId, dataModelId);
+        List<ModelRecord> records = modelRecordService.list(clientId, dataModelId, q);
         return ResponseEntity.ok(ApiResponse.success(records));
     }
 

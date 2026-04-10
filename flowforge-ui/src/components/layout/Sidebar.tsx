@@ -18,8 +18,10 @@ import {
   Sparkles,
   LogOut,
   Database,
+  Layers,
 } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
+import NamespaceSelector from './NamespaceSelector'
 
 interface NavItem {
   label: string
@@ -50,6 +52,7 @@ const navItems: NavItem[] = [
     ],
   },
   { label: 'Team', to: '/team', icon: <Users size={18} /> },
+  { label: 'Namespaces', to: '/namespaces', icon: <Layers size={18} /> },
   { label: 'Developer', to: '/developer', icon: <Code2 size={18} /> },
   { label: 'Settings', to: '/settings', icon: <Settings size={18} /> },
   { label: 'Billing', to: '/billing', icon: <CreditCard size={18} /> },
@@ -142,6 +145,9 @@ const Sidebar: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Namespace Selector */}
+      <NamespaceSelector />
 
       {/* Navigation */}
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">

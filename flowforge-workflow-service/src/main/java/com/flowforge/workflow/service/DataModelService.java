@@ -46,11 +46,13 @@ public class DataModelService {
     // ─────────────────────────────────────────────────────────────────────────
 
     public List<DataModel> listAll(String clientId) {
-        return dataModelRepository.findByClientId(clientId);
+        String namespace = TenantContext.getNamespace();
+        return dataModelRepository.findByClientIdAndNamespace(clientId, namespace);
     }
 
     public List<DataModel> listActive(String clientId) {
-        return dataModelRepository.findByClientIdAndActiveTrue(clientId);
+        String namespace = TenantContext.getNamespace();
+        return dataModelRepository.findByClientIdAndNamespaceAndActiveTrue(clientId, namespace);
     }
 
     public DataModel getById(String clientId, String id) {
@@ -60,7 +62,8 @@ public class DataModelService {
     }
 
     public DataModel getByName(String clientId, String name) {
-        return dataModelRepository.findByClientIdAndName(clientId, name)
+        String namespace = TenantContext.getNamespace();
+        return dataModelRepository.findByClientIdAndNamespaceAndName(clientId, namespace, name)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Data model not found with name: " + name));
     }
@@ -77,9 +80,10 @@ public class DataModelService {
             throw new PlanLimitExceededException(plan, "models", modelCount, limits.getMaxModels());
         }
 
-        if (dataModelRepository.existsByClientIdAndName(clientId, request.getName())) {
+        String namespace = TenantContext.getNamespace();
+        if (dataModelRepository.existsByClientIdAndNamespaceAndName(clientId, namespace, request.getName())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "A data model named '" + request.getName() + "' already exists");
+                    "A data model named '" + request.getName() + "' already exists in namespace '" + namespace + "'");
         }
 
         // Validate the schema JSON is valid JSON Schema Draft-07
@@ -91,6 +95,7 @@ public class DataModelService {
         DataModel model = DataModel.builder()
                 .id(UUID.randomUUID().toString())
                 .clientId(clientId)
+                .namespace(namespace)
                 .name(request.getName())
                 .description(request.getDescription())
                 .schemaJson(request.getSchemaJson())

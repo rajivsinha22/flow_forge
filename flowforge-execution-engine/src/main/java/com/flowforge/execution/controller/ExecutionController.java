@@ -30,9 +30,12 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import com.flowforge.execution.config.TenantContext;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 @RestController
@@ -66,6 +69,10 @@ public class ExecutionController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String workflowId,
             @RequestParam(required = false) String workflowName,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String modelRecordId,
+            @RequestParam(required = false) Instant from,
+            @RequestParam(required = false) Instant to,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "startedAt") String sortBy,
@@ -76,15 +83,28 @@ public class ExecutionController {
                 : Sort.by(sortBy).descending();
         PageRequest pageable = PageRequest.of(page, size, sort);
 
+        String namespace = TenantContext.getNamespace();
         Page<WorkflowExecution> executions;
-        if (StringUtils.hasText(workflowId)) {
+
+        // Text search by workflow name (q param)
+        if (StringUtils.hasText(q)) {
+            executions = executionRepository.searchByClientIdAndNamespaceAndWorkflowName(clientId, namespace, q, pageable);
+        } else if (StringUtils.hasText(modelRecordId)) {
+            executions = executionRepository.findByClientIdAndNamespaceAndModelRecordId(clientId, namespace, modelRecordId, pageable);
+        } else if (from != null && to != null) {
+            executions = executionRepository.findByClientIdAndNamespaceAndStartedAtBetween(
+                    clientId, namespace,
+                    LocalDateTime.ofInstant(from, ZoneOffset.UTC),
+                    LocalDateTime.ofInstant(to, ZoneOffset.UTC),
+                    pageable);
+        } else if (StringUtils.hasText(workflowId)) {
             executions = executionRepository.findByClientIdAndWorkflowId(clientId, workflowId, pageable);
         } else if (StringUtils.hasText(workflowName)) {
-            executions = executionRepository.findByClientIdAndWorkflowName(clientId, workflowName, pageable);
+            executions = executionRepository.findByClientIdAndNamespaceAndWorkflowName(clientId, namespace, workflowName, pageable);
         } else if (StringUtils.hasText(status)) {
-            executions = executionRepository.findByClientIdAndStatus(clientId, status, pageable);
+            executions = executionRepository.findByClientIdAndNamespaceAndStatus(clientId, namespace, status, pageable);
         } else {
-            executions = executionRepository.findByClientId(clientId, pageable);
+            executions = executionRepository.findByClientIdAndNamespace(clientId, namespace, pageable);
         }
 
         return ResponseEntity.ok(ApiResponse.success(executions));

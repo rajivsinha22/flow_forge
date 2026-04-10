@@ -23,4 +23,10 @@ public interface WebhookDeliveryRepository extends MongoRepository<WebhookDelive
     List<WebhookDelivery> findByStatusAndNextRetryAtBefore(String status, LocalDateTime now);
 
     long countByClientIdAndCreatedAtAfter(String clientId, LocalDateTime after);
+
+    // ── Namespace-aware query methods ─────────────────────────────────────────
+
+    Page<WebhookDelivery> findByClientIdAndNamespace(String clientId, String namespace, Pageable pageable);
+
+    long countByClientIdAndNamespaceAndCreatedAtAfter(String clientId, String namespace, LocalDateTime after);
 }

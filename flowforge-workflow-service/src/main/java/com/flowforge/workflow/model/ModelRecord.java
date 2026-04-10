@@ -20,7 +20,7 @@ import java.util.Objects;
  * </ul>
  */
 @Document("model_records")
-@CompoundIndex(name = "client_model_name_idx", def = "{'clientId': 1, 'dataModelId': 1, 'name': 1}", unique = true)
+@CompoundIndex(name = "client_model_name_idx", def = "{'clientId': 1, 'namespace': 1, 'dataModelId': 1, 'name': 1}", unique = true)
 public class ModelRecord {
 
     @Id
@@ -28,6 +28,8 @@ public class ModelRecord {
 
     @Indexed
     private String clientId;
+
+    private String namespace = "default";
 
     /** Reference to the DataModel whose schema this record conforms to. */
     @Indexed
@@ -54,6 +56,9 @@ public class ModelRecord {
     public String getClientId() { return clientId; }
     public void setClientId(String clientId) { this.clientId = clientId; }
 
+    public String getNamespace() { return namespace; }
+    public void setNamespace(String namespace) { this.namespace = namespace; }
+
     public String getDataModelId() { return dataModelId; }
     public void setDataModelId(String dataModelId) { this.dataModelId = dataModelId; }
 
@@ -79,30 +84,32 @@ public class ModelRecord {
         ModelRecord that = (ModelRecord) o;
         return Objects.equals(id, that.id) &&
                 Objects.equals(clientId, that.clientId) &&
+                Objects.equals(namespace, that.namespace) &&
                 Objects.equals(dataModelId, that.dataModelId) &&
                 Objects.equals(name, that.name);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, clientId, dataModelId, name);
+        return Objects.hash(id, clientId, namespace, dataModelId, name);
     }
 
     @Override
     public String toString() {
         return "ModelRecord{id='" + id + "', clientId='" + clientId +
-                "', dataModelId='" + dataModelId + "', name='" + name + "'}";
+                "', namespace='" + namespace + "', dataModelId='" + dataModelId + "', name='" + name + "'}";
     }
 
     public static Builder builder() { return new Builder(); }
 
     public static class Builder {
-        private String id, clientId, dataModelId, name, createdBy;
+        private String id, clientId, namespace = "default", dataModelId, name, createdBy;
         private Map<String, Object> data;
         private LocalDateTime createdAt, updatedAt;
 
         public Builder id(String id) { this.id = id; return this; }
         public Builder clientId(String clientId) { this.clientId = clientId; return this; }
+        public Builder namespace(String namespace) { this.namespace = namespace; return this; }
         public Builder dataModelId(String dataModelId) { this.dataModelId = dataModelId; return this; }
         public Builder name(String name) { this.name = name; return this; }
         public Builder data(Map<String, Object> data) { this.data = data; return this; }
@@ -114,6 +121,7 @@ public class ModelRecord {
             ModelRecord r = new ModelRecord();
             r.id = this.id;
             r.clientId = this.clientId;
+            r.namespace = this.namespace;
             r.dataModelId = this.dataModelId;
             r.name = this.name;
             r.data = this.data;

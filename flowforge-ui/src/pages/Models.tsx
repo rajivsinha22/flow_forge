@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  Plus, Search, Database, Trash2, Pencil, Tag, Copy, AlertCircle,
+  Plus, Database, Trash2, Pencil, Tag, Copy, AlertCircle,
   CheckCircle2, ChevronRight, FileJson, Layers, ArrowUpRight, FolderOpen, AlertTriangle
 } from 'lucide-react'
 import { usePlanEnforcement } from '../hooks/usePlanEnforcement'
@@ -13,6 +13,7 @@ import {
 import {
   listModelRecords, deleteModelRecord, MOCK_MODEL_RECORDS
 } from '../api/modelRecords'
+import SearchBar from '../components/shared/SearchBar'
 import ModelEditorModal from '../components/models/ModelEditorModal'
 import ModelRecordModal from '../components/models/ModelRecordModal'
 import Spinner from '../components/shared/Spinner'
@@ -31,7 +32,7 @@ const Models: React.FC = () => {
 
   const [models, setModels] = useState<DataModel[]>([])
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
+  const [searchState, setSearchState] = useState<{ q: string }>({ q: '' })
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
   const [editorModel, setEditorModel] = useState<DataModel | null | undefined>(undefined)
   // undefined = editor closed, null = creating new, DataModel = editing existing
@@ -128,7 +129,7 @@ const Models: React.FC = () => {
   ).sort()
 
   const filtered = models.filter(m => {
-    const q = search.toLowerCase()
+    const q = searchState.q.toLowerCase()
     const matchSearch = !q ||
       m.name.toLowerCase().includes(q) ||
       (m.description ?? '').toLowerCase().includes(q) ||
@@ -218,15 +219,11 @@ const Models: React.FC = () => {
       </div>
 
       {/* Search + tag filter */}
-      <div className="flex gap-3 mb-5">
-        <div className="relative flex-1">
-          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search models by name, description, or tag…"
-            className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+      <div className="flex gap-3 mb-5 flex-wrap items-end">
+        <div className="flex-1 min-w-[200px]">
+          <SearchBar
+            placeholder="Search models by name, description, or tag..."
+            onSearch={(params) => setSearchState({ q: params.q })}
           />
         </div>
         {allTags.length > 0 && (

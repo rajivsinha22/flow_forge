@@ -20,4 +20,12 @@ public interface FailedWorkflowRepository extends MongoRepository<FailedWorkflow
     long countByClientIdAndStatus(String clientId, String status);
 
     List<FailedWorkflow> findByClientIdAndWorkflowId(String clientId, String workflowId);
+
+    // ── Namespace-aware query methods ─────────────────────────────────────────
+
+    Page<FailedWorkflow> findByClientIdAndNamespace(String clientId, String namespace, Pageable pageable);
+
+    Page<FailedWorkflow> findByClientIdAndNamespaceAndStatus(String clientId, String namespace, String status, Pageable pageable);
+
+    long countByClientIdAndNamespaceAndStatus(String clientId, String namespace, String status);
 }

@@ -35,10 +35,18 @@ public class ModelRecordService {
     // ─────────────────────────────────────────────────────────────────────────
 
     public List<ModelRecord> list(String clientId, String dataModelId) {
-        if (dataModelId != null && !dataModelId.isBlank()) {
-            return modelRecordRepository.findByClientIdAndDataModelId(clientId, dataModelId);
+        return list(clientId, dataModelId, null);
+    }
+
+    public List<ModelRecord> list(String clientId, String dataModelId, String query) {
+        String namespace = com.flowforge.workflow.config.TenantContext.getNamespace();
+        if (query != null && !query.isBlank()) {
+            return modelRecordRepository.searchByClientIdAndNamespaceAndName(clientId, namespace, query);
         }
-        return modelRecordRepository.findByClientId(clientId);
+        if (dataModelId != null && !dataModelId.isBlank()) {
+            return modelRecordRepository.findByClientIdAndNamespaceAndDataModelId(clientId, namespace, dataModelId);
+        }
+        return modelRecordRepository.findByClientIdAndNamespace(clientId, namespace);
     }
 
     public ModelRecord getById(String clientId, String id) {
@@ -57,17 +65,19 @@ public class ModelRecordService {
         // Validate data against the DataModel schema
         validateData(dataModel, request.getData());
 
-        // Check name uniqueness within (clientId, dataModelId)
-        if (modelRecordRepository.existsByClientIdAndDataModelIdAndName(
-                clientId, request.getDataModelId(), request.getName())) {
+        // Check name uniqueness within (clientId, namespace, dataModelId)
+        String namespace = com.flowforge.workflow.config.TenantContext.getNamespace();
+        if (modelRecordRepository.existsByClientIdAndNamespaceAndDataModelIdAndName(
+                clientId, namespace, request.getDataModelId(), request.getName())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "A model record named '" + request.getName() + "' already exists for this data model");
+                    "A model record named '" + request.getName() + "' already exists for this data model in namespace '" + namespace + "'");
         }
 
         LocalDateTime now = LocalDateTime.now();
         ModelRecord record = ModelRecord.builder()
                 .id(UUID.randomUUID().toString())
                 .clientId(clientId)
+                .namespace(namespace)
                 .dataModelId(request.getDataModelId())
                 .name(request.getName())
                 .data(request.getData() != null ? request.getData() : new HashMap<>())
