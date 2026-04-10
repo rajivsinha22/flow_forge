@@ -164,7 +164,7 @@ export default function StepDetailPanel({ step, waitToken, onClose, onResumeWait
                 <AlertTriangle size={13} className="text-red-500 shrink-0 mt-0.5" />
                 <p className="text-xs text-red-700">
                   <strong>All {step.retryAttempts!.length} attempt{step.retryAttempts!.length !== 1 ? 's' : ''} failed.</strong>
-                  {' '}Step was dead-lettered and moved to the DLQ for manual review.
+                  {' '}Step was moved to Failed Workflows for manual review.
                 </p>
               </div>
             )}
@@ -211,14 +211,14 @@ export default function StepDetailPanel({ step, waitToken, onClose, onResumeWait
               )
             })}
 
-            {/* DLQ badge at the bottom */}
+            {/* Failed Workflows badge at the bottom */}
             {step.status === 'FAILED' && (
               <div className="flex items-center gap-2 pt-1 pl-10">
                 <div className="w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center shrink-0">
                   <AlertTriangle size={11} className="text-white" />
                 </div>
                 <span className="text-xs font-semibold text-gray-600">
-                  Moved to Dead Letter Queue
+                  Moved to Failed Workflows
                 </span>
               </div>
             )}

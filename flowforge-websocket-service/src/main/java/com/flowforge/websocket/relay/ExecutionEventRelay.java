@@ -56,7 +56,7 @@ public class ExecutionEventRelay {
 
             String eventType = event.getType();
 
-            // Only relay relevant execution lifecycle events (not DLQ — handled by DlqEventRelay)
+            // Only relay relevant execution lifecycle events (not failed-workflow events — handled by FailedWorkflowEventRelay)
             if (eventType == null) {
                 log.warn("Received execution event with null type, skipping relay");
                 return;

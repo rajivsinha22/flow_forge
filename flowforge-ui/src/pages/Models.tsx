@@ -1,15 +1,20 @@
 import React, { useEffect, useState } from 'react'
 import {
   Plus, Search, Database, Trash2, Pencil, Tag, Copy, AlertCircle,
-  CheckCircle2, ChevronRight, FileJson, Layers, ArrowUpRight
+  CheckCircle2, ChevronRight, FileJson, Layers, ArrowUpRight, FolderOpen
 } from 'lucide-react'
 import {
   listModels, createModel, updateModel, deleteModel,
   type DataModel, type DataModelRequest, MOCK_MODELS
 } from '../api/models'
+import {
+  listModelRecords, deleteModelRecord, MOCK_MODEL_RECORDS
+} from '../api/modelRecords'
 import ModelEditorModal from '../components/models/ModelEditorModal'
+import ModelRecordModal from '../components/models/ModelRecordModal'
 import Spinner from '../components/shared/Spinner'
 import ConfirmModal from '../components/shared/ConfirmModal'
+import type { ModelRecord } from '../types'
 
 const isDummy = import.meta.env.VITE_DUMMY_MODE === 'true'
 
@@ -443,7 +448,140 @@ const ModelCard: React.FC<ModelCardProps> = ({
               <Pencil size={11} /> Edit Schema
             </button>
           </div>
+
+          {/* Records section */}
+          <ModelRecordsSection dataModelId={model.id} dataModelName={model.name} />
         </div>
+      )}
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ModelRecordsSection — inline records list for an expanded ModelCard
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface ModelRecordsSectionProps {
+  dataModelId: string
+  dataModelName: string
+}
+
+const ModelRecordsSection: React.FC<ModelRecordsSectionProps> = ({ dataModelId, dataModelName }) => {
+  const [records, setRecords] = useState<ModelRecord[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showModal, setShowModal] = useState<ModelRecord | null | false>(false)
+  // false = modal closed, null = creating, ModelRecord = editing
+  const [deleteTarget, setDeleteTarget] = useState<ModelRecord | null>(null)
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const data = await listModelRecords(dataModelId)
+        setRecords(data)
+      } catch {
+        setRecords(MOCK_MODEL_RECORDS.filter(r => r.dataModelId === dataModelId))
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [dataModelId])
+
+  const handleSaved = (record: ModelRecord) => {
+    if (showModal && typeof showModal === 'object' && showModal.id) {
+      setRecords(prev => prev.map(r => r.id === record.id ? record : r))
+    } else {
+      setRecords(prev => [...prev, record])
+    }
+    setShowModal(false)
+  }
+
+  const handleDelete = async (record: ModelRecord) => {
+    try {
+      await deleteModelRecord(record.id)
+    } catch { /* demo mode */ }
+    setRecords(prev => prev.filter(r => r.id !== record.id))
+    setDeleteTarget(null)
+  }
+
+  return (
+    <div className="mt-4 pt-4 border-t border-gray-200">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <FolderOpen size={14} className="text-indigo-500" />
+          <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+            Records ({records.length})
+          </span>
+        </div>
+        <button
+          onClick={() => setShowModal(null)}
+          className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-700"
+        >
+          <Plus size={12} /> Add Record
+        </button>
+      </div>
+
+      {loading ? (
+        <p className="text-xs text-gray-400">Loading records...</p>
+      ) : records.length === 0 ? (
+        <p className="text-xs text-gray-400 italic">No records yet. Click "Add Record" to create one.</p>
+      ) : (
+        <div className="space-y-1.5">
+          {records.map(record => (
+            <div key={record.id}
+              className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-3 py-2 hover:border-indigo-200 transition-colors"
+            >
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-semibold text-gray-800 truncate">{record.name}</div>
+                <div className="text-[10px] text-gray-400 font-mono truncate mt-0.5">
+                  {JSON.stringify(record.data).slice(0, 80)}...
+                </div>
+              </div>
+              <span className="text-[10px] text-gray-300 flex-shrink-0">
+                {new Date(record.updatedAt).toLocaleDateString()}
+              </span>
+              <div className="flex items-center gap-0.5 flex-shrink-0">
+                <button
+                  onClick={() => setShowModal(record)}
+                  className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"
+                  title="Edit"
+                >
+                  <Pencil size={12} />
+                </button>
+                <button
+                  onClick={() => setDeleteTarget(record)}
+                  className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
+                  title="Delete"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Record editor modal */}
+      {showModal !== false && (
+        <ModelRecordModal
+          dataModelId={dataModelId}
+          dataModelName={dataModelName}
+          record={showModal}
+          onSave={handleSaved}
+          onClose={() => setShowModal(false)}
+        />
+      )}
+
+      {/* Delete confirm */}
+      {deleteTarget && (
+        <ConfirmModal
+          title="Delete Record"
+          message={`Delete record "${deleteTarget.name}"? This action cannot be undone.`}
+          confirmLabel="Delete"
+          danger
+          onConfirm={() => handleDelete(deleteTarget)}
+          onCancel={() => setDeleteTarget(null)}
+        />
       )}
     </div>
   )

@@ -1,7 +1,7 @@
 package com.flowforge.integration.controller;
 
-import com.flowforge.integration.model.DlqMessage;
-import com.flowforge.integration.service.DlqReplayService;
+import com.flowforge.integration.model.FailedWorkflow;
+import com.flowforge.integration.service.FailedWorkflowService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -16,54 +16,54 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/v1/dlq")
+@RequestMapping("/api/v1/failed-workflows")
 @CrossOrigin(origins = "*")
-public class DlqController {
+public class FailedWorkflowController {
 
-    private static final Logger log = LoggerFactory.getLogger(DlqController.class);
+    private static final Logger log = LoggerFactory.getLogger(FailedWorkflowController.class);
 
-    private final DlqReplayService dlqReplayService;
+    private final FailedWorkflowService failedWorkflowService;
 
-    public DlqController(DlqReplayService dlqReplayService) {
-        this.dlqReplayService = dlqReplayService;
+    public FailedWorkflowController(FailedWorkflowService failedWorkflowService) {
+        this.failedWorkflowService = failedWorkflowService;
     }
 
     /**
-     * GET /api/v1/dlq
-     * List DLQ messages for the tenant, paginated and optionally filtered by status.
+     * GET /api/v1/failed-workflows
+     * List failed workflow entries for the tenant, paginated and optionally filtered by status.
      */
     @GetMapping
-    public ResponseEntity<Page<DlqMessage>> listMessages(
+    public ResponseEntity<Page<FailedWorkflow>> listMessages(
             @RequestHeader("X-Client-Id") String clientId,
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        log.debug("Listing DLQ messages for client: {}, status: {}", clientId, status);
+        log.debug("Listing failed workflow entries for client: {}, status: {}", clientId, status);
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "failedAt"));
 
-        Page<DlqMessage> messages = (status != null && !status.isBlank())
-                ? dlqReplayService.listMessagesByStatus(clientId, status.toUpperCase(), pageable)
-                : dlqReplayService.listMessages(clientId, pageable);
+        Page<FailedWorkflow> messages = (status != null && !status.isBlank())
+                ? failedWorkflowService.listMessagesByStatus(clientId, status.toUpperCase(), pageable)
+                : failedWorkflowService.listMessages(clientId, pageable);
 
         return ResponseEntity.ok(messages);
     }
 
     /**
-     * GET /api/v1/dlq/{id}
-     * Get a specific DLQ message detail.
+     * GET /api/v1/failed-workflows/{id}
+     * Get a specific failed workflow entry.
      */
     @GetMapping("/{id}")
-    public ResponseEntity<DlqMessage> getMessage(
+    public ResponseEntity<FailedWorkflow> getMessage(
             @RequestHeader("X-Client-Id") String clientId,
             @PathVariable String id) {
-        log.debug("Getting DLQ message {} for client: {}", id, clientId);
-        DlqMessage message = dlqReplayService.getMessage(clientId, id);
+        log.debug("Getting failed workflow entry {} for client: {}", id, clientId);
+        FailedWorkflow message = failedWorkflowService.getMessage(clientId, id);
         return ResponseEntity.ok(message);
     }
 
     /**
-     * POST /api/v1/dlq/{id}/replay
-     * Replay a single DLQ message, optionally with a modified execution context.
+     * POST /api/v1/failed-workflows/{id}/replay
+     * Replay a single failed workflow entry, optionally with a modified execution context.
      *
      * <p>Request body (optional):
      * <pre>
@@ -72,18 +72,18 @@ public class DlqController {
      * }
      * </pre>
      *
-     * <p>Access control: callers with the ADMIN role or the {@code dlq:write} permission
+     * <p>Access control: callers with the ADMIN role or the {@code failed-workflows:write} permission
      * may supply a modified {@code executionContext}. Other callers must omit the body
      * (or leave executionContext null) to replay with the original captured context.
      */
     @PostMapping("/{id}/replay")
-    public ResponseEntity<DlqMessage> replayMessage(
+    public ResponseEntity<FailedWorkflow> replayMessage(
             @RequestHeader("X-Client-Id") String clientId,
             @PathVariable String id,
             @RequestHeader(value = "X-Replayed-By", required = false) String replayedBy,
             @RequestBody(required = false) Map<String, Object> body) {
 
-        log.info("Replaying DLQ message {} for client: {}", id, clientId);
+        log.info("Replaying failed workflow entry {} for client: {}", id, clientId);
 
         @SuppressWarnings("unchecked")
         Map<String, Object> contextOverride = (body != null)
@@ -95,21 +95,21 @@ public class DlqController {
             log.info("Replay of {} uses caller-supplied context override", id);
         }
 
-        DlqMessage result = dlqReplayService.replayMessage(clientId, id, replayedBy,
+        FailedWorkflow result = failedWorkflowService.replayMessage(clientId, id, replayedBy,
                 contextOverride, contextWasModified);
         return ResponseEntity.ok(result);
     }
 
     /**
-     * POST /api/v1/dlq/replay-batch
-     * Replay all PENDING DLQ messages for the tenant.
+     * POST /api/v1/failed-workflows/replay-batch
+     * Replay all PENDING failed workflow entries for the tenant.
      */
     @PostMapping("/replay-batch")
     public ResponseEntity<Map<String, Object>> replayBatch(
             @RequestHeader("X-Client-Id") String clientId,
             @RequestHeader(value = "X-Replayed-By", required = false) String replayedBy) {
-        log.info("Batch replaying all PENDING DLQ messages for client: {}", clientId);
-        List<DlqMessage> results = dlqReplayService.replayAllPending(clientId, replayedBy);
+        log.info("Batch replaying all PENDING failed workflow entries for client: {}", clientId);
+        List<FailedWorkflow> results = failedWorkflowService.replayAllPending(clientId, replayedBy);
 
         long succeeded = results.stream().filter(m -> "RESOLVED".equals(m.getStatus())).count();
         long failed = results.stream().filter(m -> "PENDING".equals(m.getStatus())).count();
@@ -124,40 +124,40 @@ public class DlqController {
     }
 
     /**
-     * DELETE /api/v1/dlq/{id}
-     * Discard a DLQ message (mark as DISCARDED).
+     * DELETE /api/v1/failed-workflows/{id}
+     * Discard a failed workflow entry (mark as DISCARDED).
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<DlqMessage> discardMessage(
+    public ResponseEntity<FailedWorkflow> discardMessage(
             @RequestHeader("X-Client-Id") String clientId,
             @PathVariable String id) {
-        log.info("Discarding DLQ message {} for client: {}", id, clientId);
-        DlqMessage discarded = dlqReplayService.discardMessage(clientId, id);
+        log.info("Discarding failed workflow entry {} for client: {}", id, clientId);
+        FailedWorkflow discarded = failedWorkflowService.discardMessage(clientId, id);
         return ResponseEntity.ok(discarded);
     }
 
     /**
-     * GET /api/v1/dlq/stats
-     * Get DLQ status counts for the tenant.
+     * GET /api/v1/failed-workflows/stats
+     * Get status counts for the tenant.
      */
     @GetMapping("/stats")
     public ResponseEntity<Map<String, Long>> getStats(
             @RequestHeader("X-Client-Id") String clientId) {
-        log.debug("Getting DLQ stats for client: {}", clientId);
-        Map<String, Long> stats = dlqReplayService.getStatusCounts(clientId);
+        log.debug("Getting failed workflow stats for client: {}", clientId);
+        Map<String, Long> stats = failedWorkflowService.getStatusCounts(clientId);
         return ResponseEntity.ok(stats);
     }
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, String>> handleRuntimeException(RuntimeException ex) {
-        log.error("DlqController error: {}", ex.getMessage());
+        log.error("FailedWorkflowController error: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("error", ex.getMessage()));
     }
 
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<Map<String, String>> handleIllegalStateException(IllegalStateException ex) {
-        log.error("DlqController illegal state: {}", ex.getMessage());
+        log.error("FailedWorkflowController illegal state: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(Map.of("error", ex.getMessage()));
     }

@@ -119,7 +119,7 @@ const Dashboard: React.FC = () => {
         />
       </div>
 
-      {/* Chart + DLQ widget */}
+      {/* Chart + Failed Workflows widget */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {/* Execution Trend */}
         <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
@@ -142,11 +142,11 @@ const Dashboard: React.FC = () => {
           </ResponsiveContainer>
         </div>
 
-        {/* DLQ Widget */}
+        {/* Failed Workflows Widget */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-gray-900">Dead Letter Queue</h2>
-            <Link to="/dlq" className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1">
+            <h2 className="font-semibold text-gray-900">Failed Workflows</h2>
+            <Link to="/failed-workflows" className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1">
               View all <ArrowRight size={10} />
             </Link>
           </div>
@@ -170,16 +170,16 @@ const Dashboard: React.FC = () => {
 
               <div className="space-y-2">
                 <button
-                  onClick={() => navigate('/dlq')}
+                  onClick={() => navigate('/failed-workflows')}
                   className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors"
                 >
                   <RefreshCw size={14} /> Replay All Pending
                 </button>
                 <Link
-                  to="/dlq"
+                  to="/failed-workflows"
                   className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
                 >
-                  <ArrowRight size={14} /> View DLQ Console
+                  <ArrowRight size={14} /> View Failed Workflows
                 </Link>
               </div>
             </>
@@ -261,14 +261,14 @@ const Dashboard: React.FC = () => {
             </Link>
 
             <Link
-              to="/dlq"
+              to="/failed-workflows"
               className="flex items-center gap-3 px-4 py-3 bg-orange-50 hover:bg-orange-100 border border-orange-100 rounded-xl transition-colors group"
             >
               <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center flex-shrink-0">
                 <RefreshCw size={16} className="text-white" />
               </div>
               <div>
-                <p className="text-sm font-medium text-orange-900">Replay DLQ</p>
+                <p className="text-sm font-medium text-orange-900">Failed Workflows</p>
                 <p className="text-xs text-orange-500">{data.activeDlqCount} pending messages</p>
               </div>
               <ArrowRight size={14} className="ml-auto text-orange-400 group-hover:translate-x-0.5 transition-transform" />

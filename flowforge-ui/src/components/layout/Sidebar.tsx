@@ -36,7 +36,7 @@ const navItems: NavItem[] = [
     label: 'Reliability',
     icon: <Inbox size={18} />,
     children: [
-      { label: 'DLQ Console', to: '/dlq', icon: <Inbox size={16} /> },
+      { label: 'Failed Workflows', to: '/failed-workflows', icon: <Inbox size={16} /> },
       { label: 'Webhook Logs', to: '/webhooks', icon: <Webhook size={16} /> },
     ],
   },

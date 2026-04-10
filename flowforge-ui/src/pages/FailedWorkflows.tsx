@@ -6,10 +6,10 @@ import {
   AlertCircle, Play, Edit3, ShieldAlert, Pencil, Lock, Repeat, Skull,
 } from 'lucide-react'
 import {
-  listDlqMessages, replayDlqMessage, replayAllDlqMessages,
-  discardDlqMessage, getDlqStats, type DlqStats,
-} from '../api/dlq'
-import type { DlqMessage, ReplayAttempt, StepRetryAttempt } from '../types'
+  listFailedWorkflows, replayFailedWorkflow, replayAllFailedWorkflows,
+  discardFailedWorkflow, getFailedWorkflowStats, type FailedWorkflowStats,
+} from '../api/failedWorkflows'
+import type { FailedWorkflow, ReplayAttempt, StepRetryAttempt } from '../types'
 import { useAuthStore } from '../store/authStore'
 import StatusBadge from '../components/shared/StatusBadge'
 import ConfirmModal from '../components/shared/ConfirmModal'
@@ -25,17 +25,17 @@ const isDummy = import.meta.env.VITE_DUMMY_MODE === 'true'
 
 /**
  * Returns true if the current user is allowed to edit execution context before replay.
- * Gate: user must have ADMIN role OR the fine-grained dlq:write permission.
+ * Gate: user must have ADMIN role OR the fine-grained failed-workflows:write permission.
  */
 function canEditContext(roles: string[]): boolean {
-  return roles.includes('CLIENT_ADMIN') || roles.includes('dlq:write')
+  return roles.includes('CLIENT_ADMIN') || roles.includes('failed-workflows:write')
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Mock data (demo / dummy mode)
 // ─────────────────────────────────────────────────────────────────────────────
 
-const MOCK_DLQ: DlqMessage[] = [
+const MOCK_FAILED_WORKFLOWS: FailedWorkflow[] = [
   {
     id: 'dlq-001', clientId: 'client-1', executionId: 'ex-003',
     workflowId: 'wf-1', workflowName: 'invoice-sync',
@@ -147,7 +147,7 @@ const MOCK_DLQ: DlqMessage[] = [
   },
 ]
 
-const MOCK_STATS: DlqStats = { pending: 3, replaying: 1, resolved: 1, discarded: 1 }
+const MOCK_STATS: FailedWorkflowStats = { pending: 3, replaying: 1, resolved: 1, discarded: 1 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Status config
@@ -184,7 +184,7 @@ const STATUS_CONFIG: Record<string, {
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface ContextEditModalProps {
-  msg: DlqMessage
+  msg: FailedWorkflow
   isLoading: boolean
   onReplay: (context: Record<string, unknown>) => void
   onClose: () => void
@@ -347,7 +347,7 @@ const ContextEditModal: React.FC<ContextEditModalProps> = ({ msg, isLoading, onR
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ReplayHistoryRow  (enhanced with contextWasModified badge + all-failed banner)
+// ReplayHistoryRow
 // ─────────────────────────────────────────────────────────────────────────────
 
 const ReplayHistoryRow: React.FC<{ attempt: ReplayAttempt; index: number; total: number }> = ({
@@ -391,13 +391,13 @@ const ReplayHistoryRow: React.FC<{ attempt: ReplayAttempt; index: number; total:
 // ─────────────────────────────────────────────────────────────────────────────
 // FullErrorTimeline
 // Shows the complete error trail: execution auto-retries → dead-lettered →
-// manual DLQ replay attempts. Each phase is visually separated.
+// manual replay attempts. Each phase is visually separated.
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface FullErrorTimelineProps {
   retryAttempts: StepRetryAttempt[]
   replayHistory: ReplayAttempt[]
-  maxAutoRetries: number  // retryCount from DlqMessage = total attempts including initial
+  maxAutoRetries: number
 }
 
 const FullErrorTimeline: React.FC<FullErrorTimelineProps> = ({
@@ -438,7 +438,7 @@ const FullErrorTimeline: React.FC<FullErrorTimelineProps> = ({
                   <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                     <span className="text-xs font-semibold text-orange-700">
                       Auto-retry {a.attemptNumber}/{maxAutoRetries}
-                      {isLast ? <span className="ml-1 text-red-600">→ Dead-lettered</span> : ''}
+                      {isLast ? <span className="ml-1 text-red-600">→ Failed</span> : ''}
                     </span>
                     {a.durationMs != null && a.durationMs > 0 && (
                       <span className="text-[10px] text-gray-400 flex items-center gap-0.5">
@@ -464,13 +464,13 @@ const FullErrorTimeline: React.FC<FullErrorTimelineProps> = ({
         <div className="flex items-center gap-2 my-3">
           <div className="flex-1 border-t border-dashed border-gray-200" />
           <span className="flex items-center gap-1 text-[10px] text-gray-400 font-medium">
-            <Skull size={9} /> Dead-lettered · manual replays below
+            <Skull size={9} /> Moved to Failed Workflows · manual replays below
           </span>
           <div className="flex-1 border-t border-dashed border-gray-200" />
         </div>
       )}
 
-      {/* ── Phase 2: manual DLQ replay attempts ──────────────────────────── */}
+      {/* ── Phase 2: manual replay attempts ──────────────────────────────────── */}
       {replayHistory.length > 0 && (
         <>
           {retryAttempts.length === 0 && (
@@ -526,19 +526,19 @@ const FullErrorTimeline: React.FC<FullErrorTimelineProps> = ({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DlqRow
+// FailedWorkflowRow
 // ─────────────────────────────────────────────────────────────────────────────
 
-interface DlqRowProps {
-  msg: DlqMessage
+interface FailedWorkflowRowProps {
+  msg: FailedWorkflow
   replayingId: string | null
   hasEditPermission: boolean
-  onReplay: (msg: DlqMessage) => void
-  onEditReplay: (msg: DlqMessage) => void
-  onDiscard: (msg: DlqMessage) => void
+  onReplay: (msg: FailedWorkflow) => void
+  onEditReplay: (msg: FailedWorkflow) => void
+  onDiscard: (msg: FailedWorkflow) => void
 }
 
-const DlqRow: React.FC<DlqRowProps> = ({
+const FailedWorkflowRow: React.FC<FailedWorkflowRowProps> = ({
   msg, replayingId, hasEditPermission, onReplay, onEditReplay, onDiscard,
 }) => {
   const [expanded, setExpanded] = useState(false)
@@ -626,7 +626,7 @@ const DlqRow: React.FC<DlqRowProps> = ({
               ) : (
                 <span
                   className="flex items-center gap-1 px-2.5 py-1 text-xs text-gray-400 bg-gray-50 border border-gray-200 rounded-lg cursor-not-allowed"
-                  title="Requires ADMIN role or dlq:write permission"
+                  title="Requires ADMIN role or failed-workflows:write permission"
                 >
                   <Lock size={11} /> Edit &amp; Replay
                 </span>
@@ -663,7 +663,7 @@ const DlqRow: React.FC<DlqRowProps> = ({
                 {' '}The root cause has persisted across every retry.
                 {hasEditPermission
                   ? ' Consider editing the execution context to patch variables or step outputs before attempting again.'
-                  : ' An admin with ADMIN role or dlq:write permission can edit the context to patch variables before retrying.'
+                  : ' An admin with ADMIN role or failed-workflows:write permission can edit the context to patch variables before retrying.'
                 }
               </div>
             </div>
@@ -816,29 +816,29 @@ const DlqRow: React.FC<DlqRowProps> = ({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DlqConsole
+// FailedWorkflows
 // ─────────────────────────────────────────────────────────────────────────────
 
 type FilterStatus = 'PENDING' | 'REPLAYING' | 'RESOLVED' | 'DISCARDED' | ''
 
-const DlqConsole: React.FC = () => {
+const FailedWorkflows: React.FC = () => {
   const { user } = useAuthStore()
   const userRoles: string[] = user?.roles ?? []
   const hasEditPermission = canEditContext(userRoles)
 
-  const [messages, setMessages] = useState<DlqMessage[]>([])
-  const [stats, setStats] = useState<DlqStats>({ pending: 0, replaying: 0, resolved: 0, discarded: 0 })
+  const [messages, setMessages] = useState<FailedWorkflow[]>([])
+  const [stats, setStats] = useState<FailedWorkflowStats>({ pending: 0, replaying: 0, resolved: 0, discarded: 0 })
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isReplayingAll, setIsReplayingAll] = useState(false)
   const [replayingId, setReplayingId] = useState<string | null>(null)
-  const [discardTarget, setDiscardTarget] = useState<DlqMessage | null>(null)
+  const [discardTarget, setDiscardTarget] = useState<FailedWorkflow | null>(null)
   const [isDiscarding, setIsDiscarding] = useState(false)
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('PENDING')
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   // Context editor modal
-  const [editReplayTarget, setEditReplayTarget] = useState<DlqMessage | null>(null)
+  const [editReplayTarget, setEditReplayTarget] = useState<FailedWorkflow | null>(null)
   const [editReplayLoading, setEditReplayLoading] = useState(false)
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
@@ -850,12 +850,12 @@ const DlqConsole: React.FC = () => {
     if (!silent) setIsLoading(true)
     else setIsRefreshing(true)
     try {
-      const [msgs, statsData] = await Promise.all([listDlqMessages(), getDlqStats()])
+      const [msgs, statsData] = await Promise.all([listFailedWorkflows(), getFailedWorkflowStats()])
       setMessages(Array.isArray(msgs) ? msgs : (msgs?.content ?? []))
       setStats(statsData)
     } catch {
       if (isDummy || !silent) {
-        setMessages(MOCK_DLQ)
+        setMessages(MOCK_FAILED_WORKFLOWS)
         setStats(MOCK_STATS)
       }
     } finally {
@@ -868,12 +868,12 @@ const DlqConsole: React.FC = () => {
 
   // ── Replay (original context) ───────────────────────────────────────────────
 
-  const handleReplay = async (msg: DlqMessage, contextOverride?: Record<string, unknown>) => {
+  const handleReplay = async (msg: FailedWorkflow, contextOverride?: Record<string, unknown>) => {
     setReplayingId(msg.id)
     try {
-      const updated = await replayDlqMessage(msg.id, contextOverride)
+      const updated = await replayFailedWorkflow(msg.id, contextOverride)
       setMessages(prev => prev.map(m => m.id === msg.id ? updated : m))
-      try { const s = await getDlqStats(); setStats(s) } catch { /* ignore */ }
+      try { const s = await getFailedWorkflowStats(); setStats(s) } catch { /* ignore */ }
       const label = contextOverride ? 'with modified context' : ''
       showToast(`"${msg.stepName}" queued for replay ${label}`.trim())
     } catch (e: unknown) {
@@ -917,14 +917,15 @@ const DlqConsole: React.FC = () => {
   const handleReplayAll = async () => {
     const pendingCount = messages.filter(m => m.status === 'PENDING').length
     if (pendingCount === 0) return
+
     setIsReplayingAll(true)
     try {
-      const res = await replayAllDlqMessages()
+      const res = await replayAllFailedWorkflows()
       setMessages(prev => {
         const updatedMap = new Map((res.messages ?? []).map(m => [m.id, m]))
         return prev.map(m => updatedMap.get(m.id) ?? m)
       })
-      try { const s = await getDlqStats(); setStats(s) } catch { /* ignore */ }
+      try { const s = await getFailedWorkflowStats(); setStats(s) } catch { /* ignore */ }
       showToast(`${res.succeeded} of ${res.total} replayed${res.failed > 0 ? `, ${res.failed} failed` : ''}`)
     } catch {
       if (isDummy) {
@@ -933,7 +934,7 @@ const DlqConsole: React.FC = () => {
           : m
         ))
         setStats(prev => ({ ...prev, pending: 0, replaying: prev.replaying + pendingCount }))
-        showToast(`${pendingCount} messages queued for replay (demo mode)`)
+        showToast(`${pendingCount} entries queued for replay (demo mode)`)
       } else {
         showToast('Batch replay failed — check logs', 'error')
       }
@@ -948,9 +949,9 @@ const DlqConsole: React.FC = () => {
     if (!discardTarget) return
     setIsDiscarding(true)
     try {
-      const updated = await discardDlqMessage(discardTarget.id)
+      const updated = await discardFailedWorkflow(discardTarget.id)
       setMessages(prev => prev.map(m => m.id === discardTarget.id ? updated : m))
-      try { const s = await getDlqStats(); setStats(s) } catch { /* ignore */ }
+      try { const s = await getFailedWorkflowStats(); setStats(s) } catch { /* ignore */ }
       showToast(`"${discardTarget.stepName}" discarded`)
     } catch {
       if (isDummy) {
@@ -958,7 +959,7 @@ const DlqConsole: React.FC = () => {
         setStats(prev => ({ ...prev, pending: Math.max(0, prev.pending - 1), discarded: prev.discarded + 1 }))
         showToast(`"${discardTarget.stepName}" discarded (demo mode)`)
       } else {
-        showToast('Failed to discard message', 'error')
+        showToast('Failed to discard entry', 'error')
       }
     } finally {
       setIsDiscarding(false)
@@ -972,7 +973,7 @@ const DlqConsole: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Spinner size="lg" label="Loading DLQ…" />
+        <Spinner size="lg" label="Loading…" />
       </div>
     )
   }
@@ -1001,9 +1002,9 @@ const DlqConsole: React.FC = () => {
       {/* ── Header ────────────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dead Letter Queue</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Failed Workflows</h1>
           <p className="text-gray-500 text-sm mt-1">
-            Failed steps that exhausted all retries — replay to resume or discard to acknowledge
+            Steps that exhausted all retries — replay to resume or discard to acknowledge
           </p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
@@ -1042,15 +1043,15 @@ const DlqConsole: React.FC = () => {
         <p className="text-xs leading-relaxed">
           {hasEditPermission ? (
             <span className="text-amber-800">
-              <strong>Admin access active.</strong> You can edit the execution context before replaying any message.
+              <strong>Admin access active.</strong> You can edit the execution context before replaying any entry.
               Use <strong>Edit &amp; Replay</strong> to patch variables or step outputs when the original context
               is causing the failure.
             </span>
           ) : (
             <span className="text-gray-500">
-              <strong>Standard access.</strong> You can replay messages with their original context.
+              <strong>Standard access.</strong> You can replay entries with their original context.
               Editing the execution context requires the <code className="bg-gray-100 px-1 rounded text-gray-700">ADMIN</code> role
-              or <code className="bg-gray-100 px-1 rounded text-gray-700">dlq:write</code> permission.
+              or <code className="bg-gray-100 px-1 rounded text-gray-700">failed-workflows:write</code> permission.
             </span>
           )}
         </p>
@@ -1085,7 +1086,7 @@ const DlqConsole: React.FC = () => {
           <strong>How replay works:</strong> Clicking <em>Replay</em> re-executes the exact failed step inside
           the original execution using the context captured at the point of failure.
           If the step succeeds, the workflow continues routing through downstream steps automatically.
-          If it fails again, the DLQ message returns to <strong>Pending</strong> for another attempt.
+          If it fails again, the entry returns to <strong>Pending</strong> for another attempt.
           {hasEditPermission && <> Admins can also <strong>Edit &amp; Replay</strong> to patch variables or step outputs before retrying.</>}
         </div>
       </div>
@@ -1120,7 +1121,7 @@ const DlqConsole: React.FC = () => {
             : <Clock size={40} className="text-gray-200 mb-3" />
           }
           <p className="text-gray-600 font-semibold">
-            {filterStatus === 'PENDING' ? 'All clear! No pending messages.' : `No ${filterStatus?.toLowerCase() || ''} messages.`}
+            {filterStatus === 'PENDING' ? 'All clear! No pending entries.' : `No ${filterStatus?.toLowerCase() || ''} entries.`}
           </p>
           {filterStatus === 'PENDING' && (
             <p className="text-gray-400 text-sm mt-1">Failed steps will appear here when they exhaust all retries.</p>
@@ -1129,7 +1130,7 @@ const DlqConsole: React.FC = () => {
       ) : (
         <div className="space-y-3">
           {filtered.map(msg => (
-            <DlqRow
+            <FailedWorkflowRow
               key={msg.id}
               msg={msg}
               replayingId={replayingId}
@@ -1155,8 +1156,8 @@ const DlqConsole: React.FC = () => {
       {/* ── Discard confirm ───────────────────────────────────────────────── */}
       <ConfirmModal
         isOpen={!!discardTarget}
-        title="Discard DLQ Message"
-        message={`Discard the failed step "${discardTarget?.stepName}" from "${discardTarget?.workflowName}"? The original execution will remain FAILED and this message cannot be replayed.`}
+        title="Discard Entry"
+        message={`Discard the failed step "${discardTarget?.stepName}" from "${discardTarget?.workflowName}"? The original execution will remain FAILED and this entry cannot be replayed.`}
         confirmLabel="Discard"
         variant="danger"
         onConfirm={handleDiscard}
@@ -1167,4 +1168,4 @@ const DlqConsole: React.FC = () => {
   )
 }
 
-export default DlqConsole
+export default FailedWorkflows

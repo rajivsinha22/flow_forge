@@ -16,7 +16,7 @@ import WorkflowDesigner from './pages/WorkflowDesigner'
 import WorkflowVersions from './pages/WorkflowVersions'
 import ExecutionList from './pages/ExecutionList'
 import ExecutionDetail from './pages/ExecutionDetail'
-import DlqConsole from './pages/DlqConsole'
+import FailedWorkflows from './pages/FailedWorkflows'
 import EventTriggers from './pages/EventTriggers'
 import WebhookLogs from './pages/WebhookLogs'
 import RateLimits from './pages/RateLimits'
@@ -56,7 +56,7 @@ function App() {
         <Route path="/executions/:executionId" element={<ExecutionDetail />} />
 
         {/* Reliability routes */}
-        <Route path="/dlq" element={<DlqConsole />} />
+        <Route path="/failed-workflows" element={<FailedWorkflows />} />
         <Route path="/webhooks" element={<WebhookLogs />} />
 
         {/* Integration routes */}

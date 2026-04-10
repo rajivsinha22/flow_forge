@@ -181,6 +181,7 @@ public class WorkflowDefinitionLoader {
                 .resolvedOutputSchemaJson((String) data.get("resolvedOutputSchemaJson"))
                 .outputMapping(outputMapping)
                 .errorHandlingConfig(errorHandlingConfig)
+                .dataSyncMode((String) data.get("dataSyncMode"))
                 .build();
     }
 }

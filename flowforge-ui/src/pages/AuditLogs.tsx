@@ -12,7 +12,7 @@ const MOCK_LOGS: AuditLog[] = [
   { id: 'al-4', action: 'USER_INVITED', actor: 'jane@company.com', resource: 'User', resourceId: 'alice@company.com', details: { role: 'VIEWER' }, timestamp: new Date(Date.now() - 86400000).toISOString(), ipAddress: '192.168.1.1' },
   { id: 'al-5', action: 'RATE_LIMIT_UPDATED', actor: 'admin@company.com', resource: 'RateLimit', resourceId: 'client', details: { maxRequestsPerMinute: 1000 }, timestamp: new Date(Date.now() - 172800000).toISOString(), ipAddress: '10.0.0.1' },
   { id: 'al-6', action: 'TRIGGER_CREATED', actor: 'john@company.com', resource: 'Trigger', resourceId: 'order-kafka-trigger', details: { sourceType: 'KAFKA' }, timestamp: new Date(Date.now() - 259200000).toISOString(), ipAddress: '10.0.0.5' },
-  { id: 'al-7', action: 'DLQ_REPLAYED_ALL', actor: 'jane@company.com', resource: 'DLQ', resourceId: 'batch', details: { count: 12 }, timestamp: new Date(Date.now() - 345600000).toISOString(), ipAddress: '192.168.1.1' },
+  { id: 'al-7', action: 'FAILED_WORKFLOWS_REPLAYED_ALL', actor: 'jane@company.com', resource: 'FailedWorkflows', resourceId: 'batch', details: { count: 12 }, timestamp: new Date(Date.now() - 345600000).toISOString(), ipAddress: '192.168.1.1' },
   { id: 'al-8', action: 'SETTINGS_UPDATED', actor: 'admin@company.com', resource: 'OrgSettings', resourceId: 'org', details: { webhookUrl: 'https://new.url/webhooks' }, timestamp: new Date(Date.now() - 432000000).toISOString(), ipAddress: '10.0.0.1' },
 ]
 
@@ -25,7 +25,7 @@ const actionColors: Record<string, string> = {
   USER_REMOVED: 'bg-red-100 text-red-700',
   RATE_LIMIT_UPDATED: 'bg-yellow-100 text-yellow-700',
   TRIGGER_CREATED: 'bg-teal-100 text-teal-700',
-  DLQ_REPLAYED_ALL: 'bg-orange-100 text-orange-700',
+  FAILED_WORKFLOWS_REPLAYED_ALL: 'bg-orange-100 text-orange-700',
   SETTINGS_UPDATED: 'bg-gray-100 text-gray-700',
 }
 

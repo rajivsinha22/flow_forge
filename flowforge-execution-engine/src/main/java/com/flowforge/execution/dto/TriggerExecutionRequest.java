@@ -8,6 +8,14 @@ public class TriggerExecutionRequest {
     private Map<String, Object> input;
     private String triggerType; // API, WEBHOOK, CRON, KAFKA, SNS - defaults to API
 
+    /**
+     * Optional model record ID. When provided, the execution engine fetches the record's data
+     * from the workflow service and injects it into the execution context.
+     * When null and the workflow has dataSyncMode set, the {@code input} data is validated
+     * on-the-fly and a new model record is auto-created from it.
+     */
+    private String modelRecordId;
+
     public TriggerExecutionRequest() {
     }
 
@@ -21,6 +29,9 @@ public class TriggerExecutionRequest {
 
     public String getTriggerType() { return triggerType; }
     public void setTriggerType(String triggerType) { this.triggerType = triggerType; }
+
+    public String getModelRecordId() { return modelRecordId; }
+    public void setModelRecordId(String modelRecordId) { this.modelRecordId = modelRecordId; }
 
     @Override
     public boolean equals(Object o) {

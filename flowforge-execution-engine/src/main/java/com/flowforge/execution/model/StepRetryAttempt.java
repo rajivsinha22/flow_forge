@@ -12,8 +12,8 @@ import java.util.Objects;
  * error message.
  *
  * <p>The full list is also serialised into the {@code STEP_DEAD_LETTERED} Kafka
- * event and stored on the {@code DlqMessage} in the integration service so the
- * DLQ console can show the complete retry history without making a second call
+ * event and stored on the {@code FailedWorkflow} in the integration service so the
+ * Failed Workflows console can show the complete retry history without making a second call
  * back to the execution engine.
  */
 public class StepRetryAttempt {

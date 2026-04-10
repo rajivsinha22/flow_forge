@@ -30,14 +30,14 @@ export const DUMMY_ME = {
 export const DUMMY_ROLES = [
   {
     id: 'role_001', name: 'CLIENT_ADMIN', description: 'Full platform access',
-    permissions: ['workflow:*', 'execution:*', 'dlq:*', 'team:*', 'settings:*', 'audit:view'],
+    permissions: ['workflow:*', 'execution:*', 'failed-workflows:*', 'team:*', 'settings:*', 'audit:view'],
     userCount: 1,
   },
   {
     id: 'role_002', name: 'WORKFLOW_MANAGER', description: 'Manage workflows and executions',
     permissions: ['workflow:create', 'workflow:edit', 'workflow:publish', 'workflow:delete',
                   'execution:trigger', 'execution:view', 'execution:pause', 'execution:retry',
-                  'dlq:view', 'dlq:replay'],
+                  'failed-workflows:view', 'failed-workflows:replay'],
     userCount: 2,
   },
   {
@@ -169,7 +169,7 @@ const now = new Date('2026-03-18T10:00:00Z')
 const ago = (minutes: number) => new Date(now.getTime() - minutes * 60000).toISOString()
 
 export const DUMMY_EXECUTIONS = [
-  { id: 'exec_001', workflowName: 'order-processing',  workflowVersion: 3, status: 'SUCCESS', triggerType: 'API',     triggeredBy: 'admin@acme.com', startedAt: ago(2),   completedAt: ago(1),   durationMs: 1240 },
+  { id: 'exec_001', workflowName: 'order-processing',  workflowVersion: 3, status: 'SUCCESS', triggerType: 'API',     triggeredBy: 'admin@acme.com', startedAt: ago(2),   completedAt: ago(1),   durationMs: 1240, modelRecordId: 'mr-1', dataSyncMode: 'WRITE' as const, modelDataSnapshot: { orderId: 'ORD-2026-0042', customerId: 'CUST-001', amount: 149.99, currency: 'USD', status: 'pending' }, modelDataAfter: { orderId: 'ORD-2026-0042', customerId: 'CUST-001', amount: 149.99, currency: 'USD', status: 'completed', processedAt: '2026-03-10T09:01:24Z', discountApplied: 15.0 } },
   { id: 'exec_002', workflowName: 'payment-flow',       workflowVersion: 2, status: 'RUNNING', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(1),   completedAt: null,     durationMs: 0 },
   { id: 'exec_003', workflowName: 'user-onboarding',    workflowVersion: 1, status: 'FAILED',  triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(90),  completedAt: ago(89),  durationMs: 820 },
   { id: 'exec_004', workflowName: 'order-processing',   workflowVersion: 3, status: 'PAUSED',  triggerType: 'API',     triggeredBy: 'ci@acme.com',    startedAt: ago(30),  completedAt: null,     durationMs: 0 },
@@ -533,8 +533,8 @@ export const DUMMY_WAIT_TOKENS = [
   },
 ]
 
-// ─── DUMMY DLQ MESSAGES ───────────────────────────────────────────────────────
-export const DUMMY_DLQ = [
+// ─── DUMMY FAILED WORKFLOW ENTRIES ───────────────────────────────────────────
+export const DUMMY_FAILED_WORKFLOWS = [
   {
     id: 'dlq_001', executionId: 'exec_003', workflowName: 'user-onboarding', stepName: 'sendWelcomeEmail',
     stepType: 'NOTIFY', failureReason: 'SMTP connection timeout after 3 retries', retryCount: 3, status: 'PENDING',
@@ -708,7 +708,7 @@ export const DUMMY_API_KEYS = [
 export const DUMMY_AUDIT_LOGS = [
   { id: 'a_001', timestamp: ago(2),    actor: 'Ravi Sharma',  action: 'EXECUTION_TRIGGERED',  details: { workflowName: 'order-processing', executionId: 'exec_001' } },
   { id: 'a_002', timestamp: ago(5),    actor: 'Ravi Sharma',  action: 'WORKFLOW_PUBLISHED',    details: { workflowName: 'order-processing', version: 3 } },
-  { id: 'a_003', timestamp: ago(60),   actor: 'Priya Mehta',  action: 'DLQ_REPLAY',            details: { dlqId: 'dlq_001', stepName: 'sendWelcomeEmail' } },
+  { id: 'a_003', timestamp: ago(60),   actor: 'Priya Mehta',  action: 'FAILED_WORKFLOW_REPLAY', details: { entryId: 'dlq_001', stepName: 'sendWelcomeEmail' } },
   { id: 'a_004', timestamp: ago(90),   actor: 'System',       action: 'EXECUTION_FAILED',      details: { workflowName: 'user-onboarding', executionId: 'exec_003' } },
   { id: 'a_005', timestamp: ago(120),  actor: 'Priya Mehta',  action: 'WORKFLOW_EDITED',       details: { workflowName: 'refund-processor' } },
   { id: 'a_006', timestamp: ago(180),  actor: 'Priya Mehta',  action: 'EXECUTION_TRIGGERED',  details: { workflowName: 'email-campaign', executionId: 'exec_005' } },

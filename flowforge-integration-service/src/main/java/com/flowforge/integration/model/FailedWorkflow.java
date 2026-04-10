@@ -10,8 +10,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-@Document("dlq_messages")
-public class DlqMessage {
+@Document("failed_workflows")
+public class FailedWorkflow {
 
     @Id
     private String id;
@@ -46,7 +46,7 @@ public class DlqMessage {
      * {@code errorMessage} (String), {@code failedAt} (ISO-8601 String),
      * {@code durationMs} (long).
      *
-     * <p>Displayed in the DLQ console as the <em>Execution Retry History</em>
+     * <p>Displayed in the Failed Workflows console as the <em>Execution Retry History</em>
      * phase of the unified error timeline, before any manual replay attempts.
      */
     private List<Map<String, Object>> retryAttempts = new ArrayList<>();
@@ -64,10 +64,10 @@ public class DlqMessage {
 
     private LocalDateTime updatedAt;
 
-    public DlqMessage() {
+    public FailedWorkflow() {
     }
 
-    public DlqMessage(String id, String clientId, String executionId, String workflowId,
+    public FailedWorkflow(String id, String clientId, String executionId, String workflowId,
                       String workflowName, String stepId, String stepName, String stepType,
                       String failureReason, Map<String, Object> stepConfig,
                       Map<String, Object> executionContext,
@@ -94,159 +94,76 @@ public class DlqMessage {
         this.updatedAt = updatedAt;
     }
 
-    public String getId() {
-        return id;
-    }
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
 
-    public void setId(String id) {
-        this.id = id;
-    }
+    public String getClientId() { return clientId; }
+    public void setClientId(String clientId) { this.clientId = clientId; }
 
-    public String getClientId() {
-        return clientId;
-    }
+    public String getExecutionId() { return executionId; }
+    public void setExecutionId(String executionId) { this.executionId = executionId; }
 
-    public void setClientId(String clientId) {
-        this.clientId = clientId;
-    }
+    public String getWorkflowId() { return workflowId; }
+    public void setWorkflowId(String workflowId) { this.workflowId = workflowId; }
 
-    public String getExecutionId() {
-        return executionId;
-    }
+    public String getWorkflowName() { return workflowName; }
+    public void setWorkflowName(String workflowName) { this.workflowName = workflowName; }
 
-    public void setExecutionId(String executionId) {
-        this.executionId = executionId;
-    }
+    public String getStepId() { return stepId; }
+    public void setStepId(String stepId) { this.stepId = stepId; }
 
-    public String getWorkflowId() {
-        return workflowId;
-    }
+    public String getStepName() { return stepName; }
+    public void setStepName(String stepName) { this.stepName = stepName; }
 
-    public void setWorkflowId(String workflowId) {
-        this.workflowId = workflowId;
-    }
+    public String getStepType() { return stepType; }
+    public void setStepType(String stepType) { this.stepType = stepType; }
 
-    public String getWorkflowName() {
-        return workflowName;
-    }
+    public String getFailureReason() { return failureReason; }
+    public void setFailureReason(String failureReason) { this.failureReason = failureReason; }
 
-    public void setWorkflowName(String workflowName) {
-        this.workflowName = workflowName;
-    }
+    public Map<String, Object> getStepConfig() { return stepConfig; }
+    public void setStepConfig(Map<String, Object> stepConfig) { this.stepConfig = stepConfig; }
 
-    public String getStepId() {
-        return stepId;
-    }
-
-    public void setStepId(String stepId) {
-        this.stepId = stepId;
-    }
-
-    public String getStepName() {
-        return stepName;
-    }
-
-    public void setStepName(String stepName) {
-        this.stepName = stepName;
-    }
-
-    public String getStepType() {
-        return stepType;
-    }
-
-    public void setStepType(String stepType) {
-        this.stepType = stepType;
-    }
-
-    public String getFailureReason() {
-        return failureReason;
-    }
-
-    public void setFailureReason(String failureReason) {
-        this.failureReason = failureReason;
-    }
-
-    public Map<String, Object> getStepConfig() {
-        return stepConfig;
-    }
-
-    public void setStepConfig(Map<String, Object> stepConfig) {
-        this.stepConfig = stepConfig;
-    }
-
-    public Map<String, Object> getExecutionContext() {
-        return executionContext;
-    }
-
-    public void setExecutionContext(Map<String, Object> executionContext) {
-        this.executionContext = executionContext;
-    }
+    public Map<String, Object> getExecutionContext() { return executionContext; }
+    public void setExecutionContext(Map<String, Object> executionContext) { this.executionContext = executionContext; }
 
     public List<Map<String, Object>> getRetryAttempts() {
         if (retryAttempts == null) retryAttempts = new ArrayList<>();
         return retryAttempts;
     }
+    public void setRetryAttempts(List<Map<String, Object>> retryAttempts) { this.retryAttempts = retryAttempts; }
 
-    public void setRetryAttempts(List<Map<String, Object>> retryAttempts) {
-        this.retryAttempts = retryAttempts;
-    }
+    public int getRetryCount() { return retryCount; }
+    public void setRetryCount(int retryCount) { this.retryCount = retryCount; }
 
-    public int getRetryCount() {
-        return retryCount;
-    }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 
-    public void setRetryCount(int retryCount) {
-        this.retryCount = retryCount;
-    }
+    public List<ReplayAttempt> getReplayHistory() { return replayHistory; }
+    public void setReplayHistory(List<ReplayAttempt> replayHistory) { this.replayHistory = replayHistory; }
 
-    public String getStatus() {
-        return status;
-    }
+    public LocalDateTime getFailedAt() { return failedAt; }
+    public void setFailedAt(LocalDateTime failedAt) { this.failedAt = failedAt; }
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public List<ReplayAttempt> getReplayHistory() {
-        return replayHistory;
-    }
-
-    public void setReplayHistory(List<ReplayAttempt> replayHistory) {
-        this.replayHistory = replayHistory;
-    }
-
-    public LocalDateTime getFailedAt() {
-        return failedAt;
-    }
-
-    public void setFailedAt(LocalDateTime failedAt) {
-        this.failedAt = failedAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof DlqMessage)) return false;
-        DlqMessage that = (DlqMessage) o;
-        return java.util.Objects.equals(id, that.id);
+        if (!(o instanceof FailedWorkflow)) return false;
+        FailedWorkflow that = (FailedWorkflow) o;
+        return Objects.equals(id, that.id);
     }
 
     @Override
     public int hashCode() {
-        return java.util.Objects.hashCode(id);
+        return Objects.hashCode(id);
     }
 
     @Override
     public String toString() {
-        return "DlqMessage{" +
+        return "FailedWorkflow{" +
                 "id='" + id + '\'' +
                 ", clientId='" + clientId + '\'' +
                 ", executionId='" + executionId + '\'' +
@@ -299,8 +216,8 @@ public class DlqMessage {
         public Builder failedAt(LocalDateTime failedAt) { this.failedAt = failedAt; return this; }
         public Builder updatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; return this; }
 
-        public DlqMessage build() {
-            return new DlqMessage(id, clientId, executionId, workflowId, workflowName,
+        public FailedWorkflow build() {
+            return new FailedWorkflow(id, clientId, executionId, workflowId, workflowName,
                     stepId, stepName, stepType, failureReason, stepConfig,
                     executionContext, retryAttempts, retryCount, status,
                     replayHistory, failedAt, updatedAt);

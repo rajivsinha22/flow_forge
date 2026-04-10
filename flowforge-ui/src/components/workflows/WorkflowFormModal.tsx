@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import {
   X, Clock, Globe, Radio, ChevronRight,
   AlertTriangle, CheckCircle2, Sparkles, Database,
-  ArrowRight, ShieldCheck,
+  ArrowRight, ShieldCheck, RefreshCw,
 } from 'lucide-react'
 import WorkflowSchemaSettings, {
   type WorkflowSchemaConfig,
@@ -103,6 +103,7 @@ const WorkflowFormModal: React.FC<WorkflowFormModalProps> = ({
     outputModelId: workflow?.outputModelId,
     outputMapping: workflow?.outputMapping as Record<string, string> | undefined,
     errorHandlingConfig: workflow?.errorHandlingConfig,
+    dataSyncMode: workflow?.dataSyncMode,
   })
 
   const [saving, setSaving] = useState(false)
@@ -426,6 +427,15 @@ const WorkflowFormModal: React.FC<WorkflowFormModalProps> = ({
             {schemaConfig.outputMapping && Object.keys(schemaConfig.outputMapping).length > 0 && (
               <span className="flex items-center gap-1 text-[11px] bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg font-medium">
                 <ArrowRight size={10} /> {Object.keys(schemaConfig.outputMapping).length} mappings
+              </span>
+            )}
+            {schemaConfig.dataSyncMode && (
+              <span className={`flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg font-medium ${
+                schemaConfig.dataSyncMode === 'WRITE'
+                  ? 'bg-emerald-100 text-emerald-700'
+                  : 'bg-cyan-100 text-cyan-700'
+              }`}>
+                <RefreshCw size={10} /> {schemaConfig.dataSyncMode === 'WRITE' ? 'Write Sync' : 'Read Sync'}
               </span>
             )}
             {errorMode !== 'FAIL_FAST' && (

@@ -2,7 +2,7 @@ package com.flowforge.integration.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.flowforge.integration.model.DlqMessage;
+import com.flowforge.integration.model.FailedWorkflow;
 import com.flowforge.integration.model.EventTriggerConfig;
 import com.flowforge.integration.repository.EventTriggerConfigRepository;
 import org.slf4j.Logger;
@@ -33,7 +33,7 @@ public class KafkaTriggerConsumer {
 
     private final EventTriggerConfigRepository triggerRepository;
     private final WebhookDeliveryService webhookDeliveryService;
-    private final DlqReplayService dlqReplayService;
+    private final FailedWorkflowService failedWorkflowService;
     private final ObjectMapper objectMapper;
     private final WebClient.Builder webClientBuilder;
     private final TriggerConditionEvaluator triggerConditionEvaluator;
@@ -47,13 +47,13 @@ public class KafkaTriggerConsumer {
 
     public KafkaTriggerConsumer(EventTriggerConfigRepository triggerRepository,
                                  WebhookDeliveryService webhookDeliveryService,
-                                 DlqReplayService dlqReplayService,
+                                 FailedWorkflowService failedWorkflowService,
                                  ObjectMapper objectMapper,
                                  WebClient.Builder webClientBuilder,
                                  TriggerConditionEvaluator triggerConditionEvaluator) {
         this.triggerRepository = triggerRepository;
         this.webhookDeliveryService = webhookDeliveryService;
-        this.dlqReplayService = dlqReplayService;
+        this.failedWorkflowService = failedWorkflowService;
         this.objectMapper = objectMapper;
         this.webClientBuilder = webClientBuilder;
         this.triggerConditionEvaluator = triggerConditionEvaluator;
@@ -61,7 +61,7 @@ public class KafkaTriggerConsumer {
 
     /**
      * Listens on "execution-events" topic for execution lifecycle events.
-     * Handles DLQ and webhook delivery for each event type.
+     * Handles failed workflow tracking and webhook delivery for each event type.
      */
     @KafkaListener(
             topics = "execution-events",
@@ -143,7 +143,7 @@ public class KafkaTriggerConsumer {
     private void handleStepDeadLettered(JsonNode event, String clientId, String executionId) {
         log.warn("Step dead-lettered for execution {} (client: {})", executionId, clientId);
 
-        DlqMessage dlqMessage = DlqMessage.builder()
+        FailedWorkflow failedWorkflow = FailedWorkflow.builder()
                 .id(UUID.randomUUID().toString())
                 .clientId(clientId)
                 .executionId(executionId)
@@ -163,14 +163,14 @@ public class KafkaTriggerConsumer {
         // Extract stepConfig and executionContext if present
         if (event.has("stepConfig") && !event.get("stepConfig").isNull()) {
             try {
-                dlqMessage.setStepConfig(objectMapper.convertValue(event.get("stepConfig"), Map.class));
+                failedWorkflow.setStepConfig(objectMapper.convertValue(event.get("stepConfig"), Map.class));
             } catch (Exception e) {
                 log.warn("Could not parse stepConfig from dead-letter event");
             }
         }
         if (event.has("executionContext") && !event.get("executionContext").isNull()) {
             try {
-                dlqMessage.setExecutionContext(objectMapper.convertValue(event.get("executionContext"), Map.class));
+                failedWorkflow.setExecutionContext(objectMapper.convertValue(event.get("executionContext"), Map.class));
             } catch (Exception e) {
                 log.warn("Could not parse executionContext from dead-letter event");
             }
@@ -182,17 +182,17 @@ public class KafkaTriggerConsumer {
                 List<Map<String, Object>> retryAttempts = objectMapper.convertValue(
                         event.get("retryAttempts"),
                         new TypeReference<List<Map<String, Object>>>() {});
-                dlqMessage.setRetryAttempts(retryAttempts);
-                log.debug("Stored {} retry attempt(s) on DLQ message for step {}",
-                        retryAttempts.size(), dlqMessage.getStepId());
+                failedWorkflow.setRetryAttempts(retryAttempts);
+                log.debug("Stored {} retry attempt(s) on failed workflow entry for step {}",
+                        retryAttempts.size(), failedWorkflow.getStepId());
             } catch (Exception e) {
                 log.warn("Could not parse retryAttempts from dead-letter event: {}", e.getMessage());
             }
         }
 
-        DlqMessage saved = dlqReplayService.saveDlqMessage(dlqMessage);
-        log.info("Created DLQ message {} for dead-lettered step {} in execution {}",
-                saved.getId(), dlqMessage.getStepId(), executionId);
+        FailedWorkflow saved = failedWorkflowService.saveFailedWorkflow(failedWorkflow);
+        log.info("Created failed workflow entry {} for dead-lettered step {} in execution {}",
+                saved.getId(), failedWorkflow.getStepId(), executionId);
 
         // Deliver webhook notification for dead-lettered step
         Map<String, Object> webhookPayload = buildWebhookPayload(event, "STEP_DEAD_LETTERED");

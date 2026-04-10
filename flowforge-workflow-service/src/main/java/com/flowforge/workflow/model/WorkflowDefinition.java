@@ -66,6 +66,16 @@ public class WorkflowDefinition {
      */
     private ErrorHandlingConfig errorHandlingConfig;
 
+    /**
+     * Data sync mode for linked input model records. Only relevant when {@code inputModelId} is set.
+     * <ul>
+     *   <li>{@code "READ"} — load model record data into execution context before the workflow runs</li>
+     *   <li>{@code "WRITE"} — same as READ, plus write updated context back to the model record after successful execution</li>
+     *   <li>{@code null} — no data sync (legacy behaviour: schema validation only)</li>
+     * </ul>
+     */
+    private String dataSyncMode;
+
     // ── These fields are NOT stored in MongoDB; they are populated on read ────
 
     /**
@@ -150,6 +160,9 @@ public class WorkflowDefinition {
 
     public ErrorHandlingConfig getErrorHandlingConfig() { return errorHandlingConfig; }
     public void setErrorHandlingConfig(ErrorHandlingConfig errorHandlingConfig) { this.errorHandlingConfig = errorHandlingConfig; }
+
+    public String getDataSyncMode() { return dataSyncMode; }
+    public void setDataSyncMode(String dataSyncMode) { this.dataSyncMode = dataSyncMode; }
 
     public String getResolvedInputSchemaJson() { return resolvedInputSchemaJson; }
     public void setResolvedInputSchemaJson(String resolvedInputSchemaJson) { this.resolvedInputSchemaJson = resolvedInputSchemaJson; }
@@ -245,6 +258,7 @@ public class WorkflowDefinition {
         private String outputModelId;
         private Map<String, Object> outputMapping;
         private ErrorHandlingConfig errorHandlingConfig;
+        private String dataSyncMode;
         private String publishedBy;
         private LocalDateTime publishedAt;
         private String changeLog;
@@ -271,6 +285,7 @@ public class WorkflowDefinition {
         public Builder outputModelId(String outputModelId) { this.outputModelId = outputModelId; return this; }
         public Builder outputMapping(Map<String, Object> outputMapping) { this.outputMapping = outputMapping; return this; }
         public Builder errorHandlingConfig(ErrorHandlingConfig errorHandlingConfig) { this.errorHandlingConfig = errorHandlingConfig; return this; }
+        public Builder dataSyncMode(String dataSyncMode) { this.dataSyncMode = dataSyncMode; return this; }
         public Builder publishedBy(String publishedBy) { this.publishedBy = publishedBy; return this; }
         public Builder publishedAt(LocalDateTime publishedAt) { this.publishedAt = publishedAt; return this; }
         public Builder changeLog(String changeLog) { this.changeLog = changeLog; return this; }
@@ -299,6 +314,7 @@ public class WorkflowDefinition {
             w.outputModelId = this.outputModelId;
             w.outputMapping = this.outputMapping;
             w.errorHandlingConfig = this.errorHandlingConfig;
+            w.dataSyncMode = this.dataSyncMode;
             w.publishedBy = this.publishedBy;
             w.publishedAt = this.publishedAt;
             w.changeLog = this.changeLog;

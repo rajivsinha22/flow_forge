@@ -3,16 +3,16 @@ package com.flowforge.execution.dto;
 import java.util.Map;
 
 /**
- * Request body for the DLQ step-replay endpoint.
+ * Request body for the step-replay endpoint.
  *
- * <p>Sent by the integration-service DlqReplayService when a user triggers a replay
- * from the Dead Letter Queue console. The execution engine uses this to restore the
+ * <p>Sent by the integration-service FailedWorkflowService when a user triggers a replay
+ * from the Failed Workflows console. The execution engine uses this to restore the
  * exact execution context that existed at the point of failure and re-runs the failed
  * step (and all downstream steps) inside the original execution record.
  */
 public class ReplayStepRequest {
 
-    /** ID of the originating DLQ message (for audit / tracing). */
+    /** ID of the originating failed workflow entry (for audit / tracing). */
     private String dlqMessageId;
 
     /** ID of the workflow execution that originally failed. */

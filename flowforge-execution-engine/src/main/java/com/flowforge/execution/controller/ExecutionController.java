@@ -111,8 +111,10 @@ public class ExecutionController {
                 ? request.getInput()
                 : new java.util.HashMap<>();
 
+        String modelRecordId = (request != null) ? request.getModelRecordId() : null;
+
         WorkflowExecution execution = orchestrator.startExecution(
-                clientId, workflowId, input, userId, triggerType);
+                clientId, workflowId, input, userId, triggerType, modelRecordId);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(execution));
     }
@@ -270,17 +272,17 @@ public class ExecutionController {
 
     /**
      * POST /api/v1/executions/replay-step
-     * DLQ Replay — re-execute a specific failed step within its original execution
+     * Replay a specific failed step within its original execution
      * and continue downstream steps on success.
      *
-     * <p>Called by the integration-service {@code DlqReplayService} when a user
-     * triggers a replay from the Dead Letter Queue console. The request carries the
+     * <p>Called by the integration-service {@code FailedWorkflowService} when a user
+     * triggers a replay from the Failed Workflows console. The request carries the
      * exact execution context that was captured at the point of failure so the step
      * is replayed with identical inputs.
      *
      * <p>On success the engine resumes normal routing (onSuccess edges), so the
-     * remainder of the workflow continues automatically. On failure the step is
-     * dead-lettered again and the DLQ message status returns to PENDING.
+     * remainder of the workflow continues automatically. On failure the entry
+     * status returns to PENDING.
      */
     @PostMapping("/executions/replay-step")
     public ResponseEntity<ApiResponse<WorkflowExecution>> replayStep(
@@ -288,7 +290,7 @@ public class ExecutionController {
             @RequestHeader(value = "X-User-Id", defaultValue = "system") String userId,
             @RequestBody ReplayStepRequest request) {
 
-        log.info("DLQ replay-step: executionId={} stepId={} dlqMessageId={} clientId={}",
+        log.info("Replay-step: executionId={} stepId={} dlqMessageId={} clientId={}",
                 request.getExecutionId(), request.getStepId(), request.getDlqMessageId(), clientId);
 
         if (request.getExecutionId() == null || request.getStepId() == null) {

@@ -24,8 +24,8 @@ const API_ENDPOINTS = [
   { method: 'GET', path: '/api/v1/executions/{id}', description: 'Get execution details', auth: true },
   { method: 'POST', path: '/api/v1/executions/{id}/pause', description: 'Pause running execution', auth: true },
   { method: 'POST', path: '/api/v1/executions/{id}/resume', description: 'Resume paused execution', auth: true },
-  { method: 'GET', path: '/api/v1/dlq', description: 'List DLQ messages', auth: true },
-  { method: 'POST', path: '/api/v1/dlq/{id}/replay', description: 'Replay DLQ message', auth: true },
+  { method: 'GET', path: '/api/v1/failed-workflows', description: 'List failed workflow entries', auth: true },
+  { method: 'POST', path: '/api/v1/failed-workflows/{id}/replay', description: 'Replay failed workflow entry', auth: true },
   { method: 'POST', path: '/api/v1/auth/login', description: 'Authenticate and get JWT token', auth: false },
   { method: 'POST', path: '/api/v1/auth/register', description: 'Register new organization', auth: false },
 ]

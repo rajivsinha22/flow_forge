@@ -13,35 +13,35 @@ import org.springframework.stereotype.Component;
 import java.util.Map;
 
 @Component
-public class DlqEventRelay {
+public class FailedWorkflowEventRelay {
 
-    private static final Logger log = LoggerFactory.getLogger(DlqEventRelay.class);
+    private static final Logger log = LoggerFactory.getLogger(FailedWorkflowEventRelay.class);
 
-    private static final String TOPIC_DLQ_PREFIX = "/topic/dlq/";
+    private static final String TOPIC_FAILED_WORKFLOWS_PREFIX = "/topic/failed-workflows/";
 
     private final SimpMessagingTemplate messagingTemplate;
     private final ObjectMapper objectMapper;
 
-    public DlqEventRelay(SimpMessagingTemplate messagingTemplate, ObjectMapper objectMapper) {
+    public FailedWorkflowEventRelay(SimpMessagingTemplate messagingTemplate, ObjectMapper objectMapper) {
         this.messagingTemplate = messagingTemplate;
         this.objectMapper = objectMapper;
     }
 
     /**
-     * Listens on "execution-events" using a separate consumer group ("flowforge-ws-dlq")
+     * Listens on "execution-events" using a separate consumer group ("flowforge-ws-failed-workflows")
      * so it receives all events independently of ExecutionEventRelay.
      *
      * On STEP_DEAD_LETTERED events:
      * - Extracts clientId
-     * - Sends the event to /topic/dlq/{clientId} for tenant-specific DLQ monitoring
+     * - Sends the event to /topic/failed-workflows/{clientId} for tenant-specific monitoring
      */
     @KafkaListener(
             topics = "execution-events",
-            groupId = "flowforge-ws-dlq",
+            groupId = "flowforge-ws-failed-workflows",
             containerFactory = "kafkaListenerContainerFactory"
     )
-    public void relayDlqEvent(ConsumerRecord<String, Object> record) {
-        log.debug("DlqEventRelay received event from Kafka: key={}", record.key());
+    public void relayFailedWorkflowEvent(ConsumerRecord<String, Object> record) {
+        log.debug("FailedWorkflowEventRelay received event from Kafka: key={}", record.key());
 
         try {
             ExecutionEvent event = parseEvent(record.value());
@@ -53,18 +53,18 @@ public class DlqEventRelay {
             if ("STEP_DEAD_LETTERED".equals(event.getType())) {
                 String clientId = event.getClientId();
                 if (clientId == null || clientId.isBlank()) {
-                    log.warn("STEP_DEAD_LETTERED event missing clientId, cannot relay to DLQ topic");
+                    log.warn("STEP_DEAD_LETTERED event missing clientId, cannot relay to failed-workflows topic");
                     return;
                 }
 
-                String dlqTopic = TOPIC_DLQ_PREFIX + clientId;
-                messagingTemplate.convertAndSend(dlqTopic, event);
+                String topic = TOPIC_FAILED_WORKFLOWS_PREFIX + clientId;
+                messagingTemplate.convertAndSend(topic, event);
                 log.info("Relayed STEP_DEAD_LETTERED event for execution {} to {} (step: {})",
-                        event.getExecutionId(), dlqTopic, event.getStepId());
+                        event.getExecutionId(), topic, event.getStepId());
             }
 
         } catch (Exception e) {
-            log.error("Error relaying DLQ event to WebSocket: {}", e.getMessage(), e);
+            log.error("Error relaying failed workflow event to WebSocket: {}", e.getMessage(), e);
         }
     }
 
@@ -95,7 +95,7 @@ public class DlqEventRelay {
             return event;
 
         } catch (Exception e) {
-            log.error("Failed to parse DLQ event: {}", e.getMessage(), e);
+            log.error("Failed to parse failed workflow event: {}", e.getMessage(), e);
             return null;
         }
     }

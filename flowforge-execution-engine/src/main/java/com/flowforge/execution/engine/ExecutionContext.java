@@ -15,6 +15,9 @@ public class ExecutionContext {
     private Map<String, Object> stepOutputs;
     private Map<String, String> envVars;
 
+    /** Model record data loaded before execution (available as ${modelData.field} in step expressions). */
+    private Map<String, Object> modelData;
+
     public ExecutionContext() {
     }
 
@@ -54,6 +57,9 @@ public class ExecutionContext {
 
     public Map<String, String> getEnvVars() { return envVars; }
     public void setEnvVars(Map<String, String> envVars) { this.envVars = envVars; }
+
+    public Map<String, Object> getModelData() { return modelData; }
+    public void setModelData(Map<String, Object> modelData) { this.modelData = modelData; }
 
     /**
      * Stores a value in stepOutputs under the given key.
@@ -105,6 +111,7 @@ public class ExecutionContext {
         private Map<String, Object> variables;
         private Map<String, Object> stepOutputs;
         private Map<String, String> envVars;
+        private Map<String, Object> modelData;
 
         public Builder clientId(String clientId) { this.clientId = clientId; return this; }
         public Builder executionId(String executionId) { this.executionId = executionId; return this; }
@@ -114,10 +121,13 @@ public class ExecutionContext {
         public Builder variables(Map<String, Object> variables) { this.variables = variables; return this; }
         public Builder stepOutputs(Map<String, Object> stepOutputs) { this.stepOutputs = stepOutputs; return this; }
         public Builder envVars(Map<String, String> envVars) { this.envVars = envVars; return this; }
+        public Builder modelData(Map<String, Object> modelData) { this.modelData = modelData; return this; }
 
         public ExecutionContext build() {
-            return new ExecutionContext(clientId, executionId, workflowId, workflowName,
+            ExecutionContext ctx = new ExecutionContext(clientId, executionId, workflowId, workflowName,
                     input, variables, stepOutputs, envVars);
+            ctx.modelData = this.modelData;
+            return ctx;
         }
     }
 }

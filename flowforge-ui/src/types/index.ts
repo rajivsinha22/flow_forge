@@ -28,6 +28,8 @@ export interface Workflow {
     customBody?: Record<string, unknown>
     notifyOnError?: boolean
   }
+  /** Data sync mode for linked input model records: "READ" or "WRITE". Only when inputModelId is set. */
+  dataSyncMode?: 'READ' | 'WRITE'
   publishedAt?: string
   createdAt?: string
   updatedAt?: string
@@ -71,11 +73,30 @@ export interface Execution {
   completedAt?: string
   durationMs?: number
   context?: Record<string, unknown>
+  /** Linked model record ID (pre-existing or auto-created). */
+  modelRecordId?: string
+  /** Data sync mode: "READ" or "WRITE". */
+  dataSyncMode?: 'READ' | 'WRITE'
+  /** Snapshot of model record data loaded before execution. */
+  modelDataSnapshot?: Record<string, unknown>
+  /** Updated model data after successful WRITE-scope execution. */
+  modelDataAfter?: Record<string, unknown>
+}
+
+export interface ModelRecord {
+  id: string
+  clientId: string
+  dataModelId: string
+  name: string
+  data: Record<string, unknown>
+  createdBy?: string
+  createdAt: string
+  updatedAt: string
 }
 
 /**
  * One entry per failed attempt produced by the execution engine retry loop.
- * Stored on StepExecution.retryAttempts and copied to DlqMessage.retryAttempts
+ * Stored on StepExecution.retryAttempts and copied to FailedWorkflow.retryAttempts
  * via the STEP_DEAD_LETTERED Kafka event.
  */
 export interface StepRetryAttempt {
@@ -106,12 +127,12 @@ export interface ReplayAttempt {
   replayedAt: string
   /**
    * True when this attempt used a manually edited execution context
-   * (ADMIN / dlq:write users only). Shown as an audit badge in replay history.
+   * (ADMIN / failed-workflows:write users only). Shown as an audit badge in replay history.
    */
   contextWasModified?: boolean
 }
 
-export interface DlqMessage {
+export interface FailedWorkflow {
   id: string
   clientId: string
   executionId: string
@@ -132,7 +153,7 @@ export interface DlqMessage {
   retryCount: number
   /** PENDING | REPLAYING | RESOLVED | DISCARDED */
   status: string
-  /** Manual replay attempts triggered from the DLQ console. */
+  /** Manual replay attempts triggered from the Failed Workflows console. */
   replayHistory?: ReplayAttempt[]
   failedAt: string
   updatedAt?: string

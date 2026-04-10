@@ -39,6 +39,7 @@ public class WorkflowOrchestrator {
     private final List<StepExecutor> stepExecutors;
     private final WorkflowDefinitionLoader definitionLoader;
     private final SchemaValidationService schemaValidationService;
+    private final ModelRecordLoader modelRecordLoader;
 
     private Map<String, StepExecutor> executorMap;
 
@@ -47,13 +48,15 @@ public class WorkflowOrchestrator {
                                  ExecutionEventPublisher eventPublisher,
                                  List<StepExecutor> stepExecutors,
                                  WorkflowDefinitionLoader definitionLoader,
-                                 SchemaValidationService schemaValidationService) {
+                                 SchemaValidationService schemaValidationService,
+                                 ModelRecordLoader modelRecordLoader) {
         this.executionRepository = executionRepository;
         this.stepExecutionRepository = stepExecutionRepository;
         this.eventPublisher = eventPublisher;
         this.stepExecutors = stepExecutors;
         this.definitionLoader = definitionLoader;
         this.schemaValidationService = schemaValidationService;
+        this.modelRecordLoader = modelRecordLoader;
     }
 
     @PostConstruct
@@ -75,9 +78,17 @@ public class WorkflowOrchestrator {
      */
     public WorkflowExecution startExecution(String clientId, String workflowId,
                                              Map<String, Object> input,
-                                             String triggeredBy, String triggerType) {
+                                             String triggeredBy, String triggerType,
+                                             String modelRecordId) {
         WorkflowDefinitionSnapshot definition = definitionLoader.loadById(clientId, workflowId);
-        return executeWorkflow(clientId, definition, input, triggeredBy, triggerType);
+        return executeWorkflow(clientId, definition, input, triggeredBy, triggerType, modelRecordId);
+    }
+
+    /** Backward-compatible overload without modelRecordId. */
+    public WorkflowExecution startExecution(String clientId, String workflowId,
+                                             Map<String, Object> input,
+                                             String triggeredBy, String triggerType) {
+        return startExecution(clientId, workflowId, input, triggeredBy, triggerType, null);
     }
 
     /**
@@ -85,13 +96,22 @@ public class WorkflowOrchestrator {
      */
     public WorkflowExecution startExecutionByName(String clientId, String workflowName,
                                                    Map<String, Object> input,
-                                                   String triggeredBy, String triggerType) {
+                                                   String triggeredBy, String triggerType,
+                                                   String modelRecordId) {
         WorkflowDefinitionSnapshot definition = definitionLoader.loadByName(clientId, workflowName);
-        return executeWorkflow(clientId, definition, input, triggeredBy, triggerType);
+        return executeWorkflow(clientId, definition, input, triggeredBy, triggerType, modelRecordId);
+    }
+
+    /** Backward-compatible overload without modelRecordId. */
+    public WorkflowExecution startExecutionByName(String clientId, String workflowName,
+                                                   Map<String, Object> input,
+                                                   String triggeredBy, String triggerType) {
+        return startExecutionByName(clientId, workflowName, input, triggeredBy, triggerType, null);
     }
 
     private WorkflowExecution executeWorkflow(String clientId, WorkflowDefinitionSnapshot definition,
-                                               Map<String, Object> input, String triggeredBy, String triggerType) {
+                                               Map<String, Object> input, String triggeredBy,
+                                               String triggerType, String modelRecordId) {
         if (definition.getSteps() == null || definition.getSteps().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Workflow '" + definition.getName() + "' has no steps to execute");
@@ -150,6 +170,35 @@ public class WorkflowOrchestrator {
         log.info("Started workflow execution id={} workflow='{}' clientId={}",
                 execution.getId(), definition.getName(), clientId);
 
+        // ── Model record data sync (READ / WRITE) ────────────────────────────
+        Map<String, Object> modelData = null;
+        if (definition.getDataSyncMode() != null && definition.getInputModelId() != null) {
+            String resolvedModelRecordId = modelRecordId;
+
+            if (modelRecordId != null && !modelRecordId.isBlank()) {
+                // Mode A: Trigger by existing model record ID → fetch from DB
+                Map<String, Object> record = modelRecordLoader.loadById(clientId, modelRecordId);
+                Object recordData = record.get("data");
+                modelData = recordData instanceof Map ? new HashMap<>((Map<String, Object>) recordData) : new HashMap<>();
+                log.info("Loaded model record id={} for execution id={}", modelRecordId, execution.getId());
+            } else if (input != null && !input.isEmpty()) {
+                // Mode B: Trigger by raw data → auto-create a model record
+                Map<String, Object> created = modelRecordLoader.create(
+                        clientId, definition.getInputModelId(),
+                        "auto-" + execution.getId(), input);
+                resolvedModelRecordId = (String) created.get("id");
+                modelData = new HashMap<>(input);
+                log.info("Auto-created model record id={} for execution id={}", resolvedModelRecordId, execution.getId());
+            }
+
+            if (resolvedModelRecordId != null) {
+                execution.setModelRecordId(resolvedModelRecordId);
+                execution.setDataSyncMode(definition.getDataSyncMode());
+                execution.setModelDataSnapshot(modelData != null ? new HashMap<>(modelData) : null);
+                executionRepository.save(execution);
+            }
+        }
+
         eventPublisher.publishExecutionStarted(execution.getId(), clientId, definition.getName());
 
         // Build execution context
@@ -164,6 +213,7 @@ public class WorkflowOrchestrator {
                         : new HashMap<>())
                 .stepOutputs(execution.getStepOutputs())
                 .envVars(new HashMap<>())
+                .modelData(modelData)
                 .build();
 
         // Find the first step (first in the list)
@@ -423,6 +473,7 @@ public class WorkflowOrchestrator {
             if (context.getInput() != null) finalContext.put("input", context.getInput());
             if (context.getVariables() != null) finalContext.put("variables", context.getVariables());
             if (context.getStepOutputs() != null) finalContext.put("stepOutputs", context.getStepOutputs());
+            if (context.getModelData() != null) finalContext.put("modelData", context.getModelData());
 
             // ── Apply output mapping when workflow succeeds ──────────────────
             if ("SUCCESS".equals(status)) {
@@ -437,6 +488,25 @@ public class WorkflowOrchestrator {
             }
 
             execution.setExecutionContext(finalContext);
+        }
+
+        // ── WRITE-scope model data write-back ────────────────────────────────
+        if ("SUCCESS".equals(status) && "WRITE".equals(execution.getDataSyncMode())
+                && execution.getModelRecordId() != null && context != null) {
+            Map<String, Object> updatedModelData = context.getModelData();
+            if (updatedModelData != null) {
+                try {
+                    modelRecordLoader.updateData(
+                            execution.getClientId(), execution.getModelRecordId(), updatedModelData);
+                    execution.setModelDataAfter(new HashMap<>(updatedModelData));
+                    log.info("Wrote back model data for execution id={} modelRecordId={}",
+                            execution.getId(), execution.getModelRecordId());
+                } catch (Exception e) {
+                    log.error("Failed to write back model data for execution id={}: {}",
+                            execution.getId(), e.getMessage(), e);
+                    // Don't fail the execution — the workflow completed successfully
+                }
+            }
         }
 
         executionRepository.save(execution);

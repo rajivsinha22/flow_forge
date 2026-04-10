@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react'
 import {
   X, Play, Zap, Clock, MessageSquare, Terminal,
   Copy, Check, ChevronDown, ChevronUp, AlertCircle, Loader2,
+  Database, RefreshCw,
 } from 'lucide-react'
 import { triggerWorkflow } from '../../api/workflows'
-import type { Workflow } from '../../types'
+import { listModelRecords, MOCK_MODEL_RECORDS } from '../../api/modelRecords'
+import type { Workflow, ModelRecord } from '../../types'
 
 // ─── Trigger type metadata ────────────────────────────────────────────────────
 
@@ -293,6 +295,13 @@ export default function TriggerWorkflowModal({ workflow, isOpen, onClose, onTrig
   const [isTriggering, setIsTriggering] = useState(false)
   const [triggerError, setTriggerError] = useState('')
 
+  // Model record linking state
+  const hasDataSync = !!workflow.dataSyncMode && !!workflow.inputModelId
+  const [dataSource, setDataSource] = useState<'record' | 'custom'>('custom')
+  const [modelRecords, setModelRecords] = useState<ModelRecord[]>([])
+  const [selectedRecordId, setSelectedRecordId] = useState<string>('')
+  const [loadingRecords, setLoadingRecords] = useState(false)
+
   const meta = TRIGGER_META[workflow.triggerType] || TRIGGER_META.API
 
   useEffect(() => {
@@ -302,6 +311,17 @@ export default function TriggerWorkflowModal({ workflow, isOpen, onClose, onTrig
     setPayload(JSON.stringify(sample, null, 2))
     setPayloadError('')
     setTriggerError('')
+    setDataSource('custom')
+    setSelectedRecordId('')
+
+    // Load model records if workflow has data sync enabled
+    if (hasDataSync && workflow.inputModelId) {
+      setLoadingRecords(true)
+      listModelRecords(workflow.inputModelId)
+        .then(setModelRecords)
+        .catch(() => setModelRecords(MOCK_MODEL_RECORDS.filter(r => r.dataModelId === workflow.inputModelId)))
+        .finally(() => setLoadingRecords(false))
+    }
   }, [isOpen, workflow])
 
   if (!isOpen) return null
@@ -320,7 +340,15 @@ export default function TriggerWorkflowModal({ workflow, isOpen, onClose, onTrig
     setIsTriggering(true)
     setTriggerError('')
     try {
-      const res = await triggerWorkflow(workflow.name, parsed as Record<string, unknown>)
+      const triggerPayload: Record<string, unknown> = {
+        input: parsed,
+        triggerType: 'API',
+      }
+      // Include modelRecordId if triggering by record
+      if (hasDataSync && dataSource === 'record' && selectedRecordId) {
+        triggerPayload.modelRecordId = selectedRecordId
+      }
+      const res = await triggerWorkflow(workflow.name, triggerPayload)
       onTriggered(res.executionId)
       onClose()
     } catch (e: unknown) {
@@ -369,8 +397,94 @@ export default function TriggerWorkflowModal({ workflow, isOpen, onClose, onTrig
           {workflow.triggerType === 'KAFKA' && <KafkaInfo workflow={workflow} />}
           {workflow.triggerType === 'CRON'  && <CronInfo  workflow={workflow} />}
 
+          {/* Data source toggle (when data sync is enabled) */}
+          {hasDataSync && (
+            <Section title={`Data Source — ${workflow.dataSyncMode} Sync`} defaultOpen>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
+                  <RefreshCw size={12} className={workflow.dataSyncMode === 'WRITE' ? 'text-emerald-500' : 'text-cyan-500'} />
+                  <span>
+                    This workflow has <strong className={workflow.dataSyncMode === 'WRITE' ? 'text-emerald-600' : 'text-cyan-600'}>{workflow.dataSyncMode}</strong> sync enabled.
+                    Model data will be loaded into execution context{workflow.dataSyncMode === 'WRITE' ? ' and written back after success' : ''}.
+                  </span>
+                </div>
+
+                {/* Toggle */}
+                <div className="flex rounded-xl overflow-hidden border border-gray-200">
+                  <button
+                    type="button"
+                    onClick={() => setDataSource('record')}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-medium transition-colors ${
+                      dataSource === 'record'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Database size={13} /> Model Record
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDataSource('custom')}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-medium transition-colors ${
+                      dataSource === 'custom'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Terminal size={13} /> Custom Payload
+                  </button>
+                </div>
+
+                {/* Model record dropdown */}
+                {dataSource === 'record' && (
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Select Model Record</label>
+                    {loadingRecords ? (
+                      <p className="text-xs text-gray-400">Loading records...</p>
+                    ) : modelRecords.length === 0 ? (
+                      <p className="text-xs text-gray-400 italic">
+                        No records found. Create one in the Models page first.
+                      </p>
+                    ) : (
+                      <select
+                        value={selectedRecordId}
+                        onChange={e => setSelectedRecordId(e.target.value)}
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      >
+                        <option value="">— Select a record —</option>
+                        {modelRecords.map(r => (
+                          <option key={r.id} value={r.id}>
+                            {r.name} ({Object.keys(r.data).length} fields)
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    {selectedRecordId && (
+                      <div className="mt-2 bg-indigo-50 border border-indigo-100 rounded-xl p-3">
+                        <p className="text-[10px] text-indigo-400 font-semibold uppercase tracking-wide mb-1">Record Data Preview</p>
+                        <pre className="text-[10px] font-mono text-indigo-800 max-h-32 overflow-auto">
+                          {JSON.stringify(
+                            modelRecords.find(r => r.id === selectedRecordId)?.data ?? {},
+                            null, 2
+                          )}
+                        </pre>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {dataSource === 'custom' && (
+                  <div className="flex items-start gap-2 text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">
+                    <AlertCircle size={13} className="mt-0.5 flex-shrink-0" />
+                    A new model record will be auto-created from the payload below.
+                  </div>
+                )}
+              </div>
+            </Section>
+          )}
+
           {/* Manual trigger payload */}
-          <Section title="Run Now — Input Payload" defaultOpen>
+          <Section title="Run Now — Input Payload" defaultOpen={!hasDataSync || dataSource === 'custom'}>
             <div className="space-y-3">
               <p className="text-xs text-gray-500">
                 Provide the JSON input that will be available as <code className="font-mono bg-gray-100 px-1 rounded">$&#x7B;input.*&#x7D;</code> within step expressions.

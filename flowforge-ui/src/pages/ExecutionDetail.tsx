@@ -19,7 +19,7 @@ export default function ExecutionDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
-  const [activeMainTab, setActiveMainTab] = useState<'diagram' | 'timeline' | 'context'>('diagram');
+  const [activeMainTab, setActiveMainTab] = useState<'diagram' | 'timeline' | 'context' | 'modelData'>('diagram');
   const [actionLoading, setActionLoading] = useState(false);
   const [analyzeLoading, setAnalyzeLoading] = useState(false);
   const [analyzeResult, setAnalyzeResult] = useState<AiAnalysisResult | null>(null);
@@ -278,17 +278,20 @@ export default function ExecutionDetail() {
           {/* Tabs: Diagram | Timeline | Context */}
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             <div className="flex border-b border-gray-200 px-4">
-              {(['diagram', 'timeline', 'context'] as const).map(tab => (
+              {([
+                'diagram', 'timeline', 'context',
+                ...(exec.modelRecordId || exec.modelDataSnapshot ? ['modelData'] as const : []),
+              ] as const).map(tab => (
                 <button
                   key={tab}
-                  onClick={() => setActiveMainTab(tab)}
+                  onClick={() => setActiveMainTab(tab as any)}
                   className={`py-3 px-1 mr-5 text-sm font-medium border-b-2 capitalize transition-colors ${
                     activeMainTab === tab
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700'
                   }`}
                 >
-                  {tab === 'diagram' ? '🗺 Diagram' : tab === 'timeline' ? '⏱ Timeline' : '🔤 Context'}
+                  {tab === 'diagram' ? '🗺 Diagram' : tab === 'timeline' ? '⏱ Timeline' : tab === 'context' ? '🔤 Context' : '📦 Model Data'}
                 </button>
               ))}
             </div>
@@ -334,6 +337,15 @@ export default function ExecutionDetail() {
                     ? <JsonViewer data={trace.executionContext} />
                     : <div className="text-center py-8 text-gray-400">No execution context available.</div>}
                 </div>
+              )}
+
+              {activeMainTab === 'modelData' && (
+                <ModelDataTab
+                  modelRecordId={exec.modelRecordId}
+                  dataSyncMode={exec.dataSyncMode}
+                  modelDataSnapshot={exec.modelDataSnapshot}
+                  modelDataAfter={exec.modelDataAfter}
+                />
               )}
             </div>
           </div>
@@ -429,5 +441,131 @@ function StepTimelineRow({
         </div>
       </div>
     </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Model Data Tab — shows before/after snapshots and diff for model-linked executions
+// ─────────────────────────────────────────────────────────────────────────────
+
+function ModelDataTab({
+  modelRecordId, dataSyncMode, modelDataSnapshot, modelDataAfter,
+}: {
+  modelRecordId?: string;
+  dataSyncMode?: 'READ' | 'WRITE';
+  modelDataSnapshot?: Record<string, unknown>;
+  modelDataAfter?: Record<string, unknown>;
+}) {
+  if (!modelRecordId && !modelDataSnapshot) {
+    return <div className="text-center py-8 text-gray-400">No model data linked to this execution.</div>;
+  }
+
+  // Compute simple diff for WRITE scope
+  const changes: { key: string; before: unknown; after: unknown; type: 'added' | 'changed' | 'removed' }[] = [];
+  if (dataSyncMode === 'WRITE' && modelDataSnapshot && modelDataAfter) {
+    const allKeys = new Set([...Object.keys(modelDataSnapshot), ...Object.keys(modelDataAfter)]);
+    for (const key of allKeys) {
+      const before = modelDataSnapshot[key];
+      const after = modelDataAfter[key];
+      if (before === undefined && after !== undefined) {
+        changes.push({ key, before, after, type: 'added' });
+      } else if (before !== undefined && after === undefined) {
+        changes.push({ key, before, after, type: 'removed' });
+      } else if (JSON.stringify(before) !== JSON.stringify(after)) {
+        changes.push({ key, before, after, type: 'changed' });
+      }
+    }
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex items-center gap-3 flex-wrap">
+        {modelRecordId && (
+          <span className="text-xs font-mono bg-gray-100 text-gray-600 px-2 py-1 rounded-lg">
+            ID: {modelRecordId}
+          </span>
+        )}
+        {dataSyncMode && (
+          <span className={`text-xs font-semibold px-2 py-1 rounded-lg ${
+            dataSyncMode === 'WRITE'
+              ? 'bg-emerald-100 text-emerald-700'
+              : 'bg-cyan-100 text-cyan-700'
+          }`}>
+            {dataSyncMode} Sync
+          </span>
+        )}
+      </div>
+
+      {/* Before Execution */}
+      {modelDataSnapshot && (
+        <div>
+          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+            Before Execution
+          </h4>
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-3">
+            <pre className="text-xs font-mono text-gray-700 whitespace-pre-wrap overflow-auto max-h-64">
+              {JSON.stringify(modelDataSnapshot, null, 2)}
+            </pre>
+          </div>
+        </div>
+      )}
+
+      {/* After Execution (WRITE scope only) */}
+      {dataSyncMode === 'WRITE' && modelDataAfter && (
+        <div>
+          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+            After Execution
+          </h4>
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+            <pre className="text-xs font-mono text-emerald-800 whitespace-pre-wrap overflow-auto max-h-64">
+              {JSON.stringify(modelDataAfter, null, 2)}
+            </pre>
+          </div>
+        </div>
+      )}
+
+      {/* Changes Diff */}
+      {changes.length > 0 && (
+        <div>
+          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+            Changes ({changes.length})
+          </h4>
+          <div className="space-y-1.5">
+            {changes.map(c => (
+              <div key={c.key} className={`flex items-start gap-3 rounded-xl px-3 py-2 text-xs border ${
+                c.type === 'added'   ? 'bg-green-50 border-green-200' :
+                c.type === 'removed' ? 'bg-red-50 border-red-200' :
+                                       'bg-amber-50 border-amber-200'
+              }`}>
+                <span className={`font-mono font-bold flex-shrink-0 ${
+                  c.type === 'added' ? 'text-green-700' : c.type === 'removed' ? 'text-red-700' : 'text-amber-700'
+                }`}>
+                  {c.type === 'added' ? '+' : c.type === 'removed' ? '-' : '~'} {c.key}
+                </span>
+                <div className="flex-1 min-w-0">
+                  {c.type !== 'added' && (
+                    <div className="text-red-600 font-mono line-through truncate">
+                      {JSON.stringify(c.before)}
+                    </div>
+                  )}
+                  {c.type !== 'removed' && (
+                    <div className="text-green-700 font-mono truncate">
+                      {JSON.stringify(c.after)}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {dataSyncMode === 'WRITE' && !modelDataAfter && (
+        <div className="text-xs text-gray-400 bg-gray-50 rounded-xl px-3 py-2 border border-gray-200">
+          Write-back data not yet available. The execution may still be running, or it may have failed before write-back could occur.
+        </div>
+      )}
+    </div>
   );
 }

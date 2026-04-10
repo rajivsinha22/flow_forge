@@ -48,6 +48,20 @@ public class WorkflowExecution {
      */
     private Map<String, Object> output;
 
+    // ── Model record linking ───────────────────────────────────────────────────
+
+    /** ID of the linked model record (may be pre-existing or auto-created from raw input). */
+    private String modelRecordId;
+
+    /** Data sync mode copied from the workflow definition: "READ" or "WRITE". */
+    private String dataSyncMode;
+
+    /** Snapshot of the model record data loaded before execution started. */
+    private Map<String, Object> modelDataSnapshot;
+
+    /** Updated model data written back after successful WRITE-scope execution. */
+    private Map<String, Object> modelDataAfter;
+
     public WorkflowExecution() {
     }
 
@@ -86,6 +100,18 @@ public class WorkflowExecution {
 
     public Map<String, Object> getOutput() { return output; }
     public void setOutput(Map<String, Object> output) { this.output = output; }
+
+    public String getModelRecordId() { return modelRecordId; }
+    public void setModelRecordId(String modelRecordId) { this.modelRecordId = modelRecordId; }
+
+    public String getDataSyncMode() { return dataSyncMode; }
+    public void setDataSyncMode(String dataSyncMode) { this.dataSyncMode = dataSyncMode; }
+
+    public Map<String, Object> getModelDataSnapshot() { return modelDataSnapshot; }
+    public void setModelDataSnapshot(Map<String, Object> modelDataSnapshot) { this.modelDataSnapshot = modelDataSnapshot; }
+
+    public Map<String, Object> getModelDataAfter() { return modelDataAfter; }
+    public void setModelDataAfter(Map<String, Object> modelDataAfter) { this.modelDataAfter = modelDataAfter; }
 
     public String getCurrentStepId() { return currentStepId; }
     public void setCurrentStepId(String currentStepId) { this.currentStepId = currentStepId; }
@@ -172,6 +198,10 @@ public class WorkflowExecution {
         private String errorMessage;
         private Map<String, Object> executionContext;
         private WorkflowDefinitionSnapshot workflowDefinition;
+        private String modelRecordId;
+        private String dataSyncMode;
+        private Map<String, Object> modelDataSnapshot;
+        private Map<String, Object> modelDataAfter;
 
         public Builder id(String id) { this.id = id; return this; }
         public Builder clientId(String clientId) { this.clientId = clientId; return this; }
@@ -192,6 +222,10 @@ public class WorkflowExecution {
         public Builder errorMessage(String errorMessage) { this.errorMessage = errorMessage; return this; }
         public Builder executionContext(Map<String, Object> executionContext) { this.executionContext = executionContext; return this; }
         public Builder workflowDefinition(WorkflowDefinitionSnapshot workflowDefinition) { this.workflowDefinition = workflowDefinition; return this; }
+        public Builder modelRecordId(String modelRecordId) { this.modelRecordId = modelRecordId; return this; }
+        public Builder dataSyncMode(String dataSyncMode) { this.dataSyncMode = dataSyncMode; return this; }
+        public Builder modelDataSnapshot(Map<String, Object> modelDataSnapshot) { this.modelDataSnapshot = modelDataSnapshot; return this; }
+        public Builder modelDataAfter(Map<String, Object> modelDataAfter) { this.modelDataAfter = modelDataAfter; return this; }
 
         public WorkflowExecution build() {
             WorkflowExecution e = new WorkflowExecution();
@@ -214,6 +248,10 @@ public class WorkflowExecution {
             e.errorMessage = this.errorMessage;
             e.executionContext = this.executionContext;
             e.workflowDefinition = this.workflowDefinition;
+            e.modelRecordId = this.modelRecordId;
+            e.dataSyncMode = this.dataSyncMode;
+            e.modelDataSnapshot = this.modelDataSnapshot;
+            e.modelDataAfter = this.modelDataAfter;
             return e;
         }
     }

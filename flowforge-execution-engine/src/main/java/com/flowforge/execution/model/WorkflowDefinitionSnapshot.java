@@ -51,6 +51,14 @@ public class WorkflowDefinitionSnapshot {
      */
     private Map<String, Object> errorHandlingConfig;
 
+    /**
+     * Data sync mode for linked input model records.
+     * "READ" = load model data into context before execution.
+     * "WRITE" = same as READ, plus write back after successful execution.
+     * null = no data sync.
+     */
+    private String dataSyncMode;
+
     public WorkflowDefinitionSnapshot() {
     }
 
@@ -113,6 +121,9 @@ public class WorkflowDefinitionSnapshot {
     public Map<String, Object> getErrorHandlingConfig() { return errorHandlingConfig; }
     public void setErrorHandlingConfig(Map<String, Object> errorHandlingConfig) { this.errorHandlingConfig = errorHandlingConfig; }
 
+    public String getDataSyncMode() { return dataSyncMode; }
+    public void setDataSyncMode(String dataSyncMode) { this.dataSyncMode = dataSyncMode; }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -159,6 +170,7 @@ public class WorkflowDefinitionSnapshot {
         private String resolvedOutputSchemaJson;
         private Map<String, Object> outputMapping;
         private Map<String, Object> errorHandlingConfig;
+        private String dataSyncMode;
 
         public Builder id(String id) { this.id = id; return this; }
         public Builder clientId(String clientId) { this.clientId = clientId; return this; }
@@ -175,6 +187,7 @@ public class WorkflowDefinitionSnapshot {
         public Builder resolvedOutputSchemaJson(String resolvedOutputSchemaJson) { this.resolvedOutputSchemaJson = resolvedOutputSchemaJson; return this; }
         public Builder outputMapping(Map<String, Object> outputMapping) { this.outputMapping = outputMapping; return this; }
         public Builder errorHandlingConfig(Map<String, Object> errorHandlingConfig) { this.errorHandlingConfig = errorHandlingConfig; return this; }
+        public Builder dataSyncMode(String dataSyncMode) { this.dataSyncMode = dataSyncMode; return this; }
 
         public WorkflowDefinitionSnapshot build() {
             WorkflowDefinitionSnapshot s = new WorkflowDefinitionSnapshot(id, clientId, name, displayName,
@@ -185,6 +198,7 @@ public class WorkflowDefinitionSnapshot {
             s.resolvedOutputSchemaJson = this.resolvedOutputSchemaJson;
             s.outputMapping = this.outputMapping;
             s.errorHandlingConfig = this.errorHandlingConfig;
+            s.dataSyncMode = this.dataSyncMode;
             return s;
         }
     }

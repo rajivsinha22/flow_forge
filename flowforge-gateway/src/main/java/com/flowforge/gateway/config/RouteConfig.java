@@ -63,9 +63,9 @@ public class RouteConfig {
                         .filters(f -> f.filter(jwtAuthFilter.apply(new JwtAuthFilter.Config())))
                         .uri(executionServiceUrl))
 
-                // ── INTEGRATION SERVICE (DLQ, Triggers, Webhooks) ─────────────────────
-                .route("dlq-routes", r -> r
-                        .path("/api/v1/dlq/**")
+                // ── INTEGRATION SERVICE (Failed Workflows, Triggers, Webhooks) ────────
+                .route("failed-workflow-routes", r -> r
+                        .path("/api/v1/failed-workflows/**")
                         .filters(f -> f.filter(jwtAuthFilter.apply(new JwtAuthFilter.Config())))
                         .uri(integrationServiceUrl))
 

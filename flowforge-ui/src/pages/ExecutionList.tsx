@@ -224,7 +224,18 @@ const ExecutionList: React.FC = () => {
                     </td>
                     <td className="px-4 py-3.5 max-w-[180px]">
                       <div>
-                        <p className="font-medium text-gray-900 truncate">{exec.workflowName}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-medium text-gray-900 truncate">{exec.workflowName}</p>
+                          {exec.modelRecordId && (
+                            <span className={`flex-shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                              exec.dataSyncMode === 'WRITE'
+                                ? 'bg-emerald-100 text-emerald-600'
+                                : 'bg-cyan-100 text-cyan-600'
+                            }`}>
+                              {exec.dataSyncMode || 'MODEL'}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-gray-400">v{exec.workflowVersion}</p>
                         {/* Show ID inline on mobile when ID column is hidden */}
                         <p className="md:hidden text-[10px] text-gray-400 font-mono mt-0.5 truncate">{exec.id}</p>

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import {
   FileJson, ShieldCheck, AlertTriangle, Plus, Trash2,
-  ChevronDown, Info, CheckCircle2, ArrowRight
+  ChevronDown, Info, CheckCircle2, ArrowRight, RefreshCw, BookOpen, Pencil
 } from 'lucide-react'
 import { listModels, type DataModel, type ErrorHandlingConfig, MOCK_MODELS } from '../../api/models'
 
@@ -12,6 +12,7 @@ export interface WorkflowSchemaConfig {
   outputModelId?: string
   outputMapping?: Record<string, string>
   errorHandlingConfig?: ErrorHandlingConfig
+  dataSyncMode?: 'READ' | 'WRITE'
 }
 
 interface WorkflowSchemaSettingsProps {
@@ -114,13 +115,83 @@ const WorkflowSchemaSettings: React.FC<WorkflowSchemaSettingsProps> = ({ config,
           value={config.inputModelId}
           models={models}
           loading={loadingModels}
-          onChange={v => update({ inputModelId: v })}
+          onChange={v => update({ inputModelId: v, ...(!v ? { dataSyncMode: undefined } : {}) })}
         />
 
         {selectedInputModel && (
-          <SelectedModelBadge model={selectedInputModel} onClear={() => update({ inputModelId: undefined })} />
+          <SelectedModelBadge model={selectedInputModel} onClear={() => update({ inputModelId: undefined, dataSyncMode: undefined })} />
         )}
       </section>
+
+      {/* ── Data Sync (visible only when inputModelId is set) ─────────────── */}
+      {config.inputModelId && (
+        <section className="border-t border-gray-100 pt-5">
+          <div className="flex items-center gap-2 mb-3">
+            <RefreshCw size={16} className="text-cyan-600" />
+            <h3 className="text-sm font-semibold text-gray-800">Data Sync</h3>
+            <span className="ml-auto text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">optional</span>
+          </div>
+          <p className="text-xs text-gray-500 mb-3">
+            Link model record data to execution context. When a model record is provided at trigger time,
+            its data will be loaded into the execution context and optionally written back after completion.
+          </p>
+
+          <div className="grid grid-cols-2 gap-2">
+            {/* READ option */}
+            <button
+              type="button"
+              onClick={() => update({ dataSyncMode: config.dataSyncMode === 'READ' ? undefined : 'READ' })}
+              className={`flex items-start gap-3 p-3 rounded-xl border-2 text-left transition-all ${
+                config.dataSyncMode === 'READ'
+                  ? 'ring-2 ring-cyan-400 border-cyan-400 bg-cyan-50'
+                  : 'border-gray-100 bg-white hover:border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              <BookOpen size={16} className={`mt-0.5 flex-shrink-0 ${config.dataSyncMode === 'READ' ? 'text-cyan-600' : 'text-gray-400'}`} />
+              <div>
+                <p className={`text-sm font-semibold ${config.dataSyncMode === 'READ' ? 'text-cyan-700' : 'text-gray-700'}`}>Read</p>
+                <p className={`text-[11px] mt-0.5 leading-relaxed ${config.dataSyncMode === 'READ' ? 'text-cyan-600 opacity-75' : 'text-gray-400'}`}>
+                  Load model data into context before execution
+                </p>
+              </div>
+            </button>
+
+            {/* WRITE option */}
+            <button
+              type="button"
+              onClick={() => update({ dataSyncMode: config.dataSyncMode === 'WRITE' ? undefined : 'WRITE' })}
+              className={`flex items-start gap-3 p-3 rounded-xl border-2 text-left transition-all ${
+                config.dataSyncMode === 'WRITE'
+                  ? 'ring-2 ring-emerald-400 border-emerald-400 bg-emerald-50'
+                  : 'border-gray-100 bg-white hover:border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              <Pencil size={16} className={`mt-0.5 flex-shrink-0 ${config.dataSyncMode === 'WRITE' ? 'text-emerald-600' : 'text-gray-400'}`} />
+              <div>
+                <p className={`text-sm font-semibold ${config.dataSyncMode === 'WRITE' ? 'text-emerald-700' : 'text-gray-700'}`}>Write</p>
+                <p className={`text-[11px] mt-0.5 leading-relaxed ${config.dataSyncMode === 'WRITE' ? 'text-emerald-600 opacity-75' : 'text-gray-400'}`}>
+                  Read + write updated data back after success
+                </p>
+              </div>
+            </button>
+          </div>
+
+          {config.dataSyncMode && (
+            <div className={`mt-3 flex items-start gap-2 text-xs rounded-lg px-3 py-2 ${
+              config.dataSyncMode === 'WRITE'
+                ? 'text-emerald-700 bg-emerald-50'
+                : 'text-cyan-700 bg-cyan-50'
+            }`}>
+              <Info size={13} className="mt-0.5 flex-shrink-0" />
+              <span>
+                {config.dataSyncMode === 'READ'
+                  ? 'Model data will be available as ${modelData.fieldName} in step expressions.'
+                  : 'Model data will be loaded before execution and written back to the model record after successful completion.'}
+              </span>
+            </div>
+          )}
+        </section>
+      )}
 
       {/* ── Output Schema ─────────────────────────────────────────────────── */}
       <section className="border-t border-gray-100 pt-5">

@@ -27,7 +27,7 @@ const ALL_PERMISSIONS = [
   'settings:read', 'settings:write',
   'api-keys:read', 'api-keys:write',
   'audit-logs:read',
-  'dlq:read', 'dlq:write',
+  'failed-workflows:read', 'failed-workflows:write',
 ]
 
 const TeamManagement: React.FC = () => {

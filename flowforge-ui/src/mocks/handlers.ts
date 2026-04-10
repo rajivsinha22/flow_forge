@@ -6,11 +6,12 @@ import {
   DUMMY_STEP_EXECUTIONS_001, DUMMY_STEP_EXECUTIONS_003, DUMMY_STEP_EXECUTIONS_009,
   DUMMY_STEP_EXECUTIONS_002, DUMMY_STEP_EXECUTIONS_004,
   DUMMY_STEP_EXECUTIONS_005, DUMMY_STEP_EXECUTIONS_006,
-  DUMMY_WAIT_TOKENS, DUMMY_DLQ, DUMMY_TRIGGERS,
+  DUMMY_WAIT_TOKENS, DUMMY_FAILED_WORKFLOWS, DUMMY_TRIGGERS,
   DUMMY_WEBHOOK_DELIVERIES, DUMMY_API_KEYS, DUMMY_AUDIT_LOGS,
   DUMMY_RATE_LIMITS, DUMMY_ANALYTICS_SUMMARY, DUMMY_EXECUTION_TREND,
   DUMMY_ENV_VARS, DUMMY_WORKFLOW_VERSIONS,
 } from './data'
+import { MOCK_MODEL_RECORDS } from '../api/modelRecords'
 
 // Wraps data in backend's ApiResponse envelope
 const ok = (data: unknown, message = 'OK') => [200, { success: true, data, message }]
@@ -323,23 +324,23 @@ export function setupMockHandlers(axiosInstance: AxiosInstance) {
   mock.onPost(new RegExp('/executions/.*/steps/.*/resume')).reply(ok({ ...DUMMY_WAIT_TOKENS[0], status: 'RESUMED', resumedAt: new Date().toISOString(), resumedBy: 'MANUAL_API' }))
   mock.onPost(new RegExp('/executions/resume-by-token/.*')).reply(ok({ ...DUMMY_WAIT_TOKENS[0], status: 'RESUMED', resumedAt: new Date().toISOString() }))
 
-  // ── DLQ ────────────────────────────────────────────────────────────────────
-  mock.onGet('/dlq').reply((config) => {
+  // ── FAILED WORKFLOWS ───────────────────────────────────────────────────────
+  mock.onGet('/failed-workflows').reply((config) => {
     const params = config.params || {}
-    let dlq = [...DUMMY_DLQ]
-    if (params.status) dlq = dlq.filter(d => d.status === params.status)
-    return ok(paginate(dlq, params.page, params.size))
+    let items = [...DUMMY_FAILED_WORKFLOWS]
+    if (params.status) items = items.filter(d => d.status === params.status)
+    return ok(paginate(items, params.page, params.size))
   })
 
-  mock.onGet(new RegExp('^/dlq/[^/]+$')).reply((config) => {
+  mock.onGet(new RegExp('^/failed-workflows/[^/]+$')).reply((config) => {
     const id = config.url!.split('/').pop()!
-    const msg = DUMMY_DLQ.find(d => d.id === id)
+    const msg = DUMMY_FAILED_WORKFLOWS.find(d => d.id === id)
     return msg ? ok(msg) : notFound()
   })
 
-  mock.onPost(new RegExp('/dlq/.*/replay')).reply((config) => {
+  mock.onPost(new RegExp('/failed-workflows/.*/replay')).reply((config) => {
     const id = config.url!.split('/')[2]
-    const msg = DUMMY_DLQ.find(d => d.id === id)
+    const msg = DUMMY_FAILED_WORKFLOWS.find(d => d.id === id)
     if (!msg) return notFound()
     const body = config.data ? JSON.parse(config.data) : {}
     const contextWasModified = !!body.executionContext
@@ -360,17 +361,17 @@ export function setupMockHandlers(axiosInstance: AxiosInstance) {
     }
     return ok(updated)
   })
-  mock.onPost('/dlq/replay-batch').reply(() => {
-    const pending = DUMMY_DLQ.filter(d => d.status === 'PENDING')
+  mock.onPost('/failed-workflows/replay-batch').reply(() => {
+    const pending = DUMMY_FAILED_WORKFLOWS.filter(d => d.status === 'PENDING')
     const messages = pending.map(m => ({
       ...m, status: 'REPLAYING',
       replayHistory: [...((m as any).replayHistory ?? []), { replayedBy: 'batch', result: 'SUCCESS', replayedAt: new Date().toISOString(), contextWasModified: false }],
     }))
     return ok({ total: pending.length, succeeded: pending.length, failed: 0, messages })
   })
-  mock.onDelete(new RegExp('/dlq/.*')).reply((config) => {
+  mock.onDelete(new RegExp('/failed-workflows/.*')).reply((config) => {
     const id = config.url!.split('/').pop()!
-    const msg = DUMMY_DLQ.find(d => d.id === id)
+    const msg = DUMMY_FAILED_WORKFLOWS.find(d => d.id === id)
     if (!msg) return notFound()
     return ok({ ...msg, status: 'DISCARDED', updatedAt: new Date().toISOString() })
   })
@@ -423,4 +424,67 @@ export function setupMockHandlers(axiosInstance: AxiosInstance) {
   // ── ANALYTICS ──────────────────────────────────────────────────────────────
   mock.onGet('/analytics/summary').reply(ok(DUMMY_ANALYTICS_SUMMARY))
   mock.onGet('/analytics/execution-trend').reply(ok(DUMMY_EXECUTION_TREND))
+
+  // ── MODEL RECORDS ────────────────────────────────────────────────────────
+  let modelRecords = [...MOCK_MODEL_RECORDS]
+
+  mock.onGet('/model-records').reply((config) => {
+    const { dataModelId } = config.params || {}
+    const filtered = dataModelId
+      ? modelRecords.filter((r: any) => r.dataModelId === dataModelId)
+      : modelRecords
+    return ok(filtered)
+  })
+
+  mock.onGet(new RegExp('/model-records/[^/]+')).reply((config) => {
+    const id = config.url?.split('/').pop()
+    const record = modelRecords.find((r: any) => r.id === id)
+    return record ? ok(record) : notFound('Model record not found')
+  })
+
+  mock.onPost('/model-records').reply((config) => {
+    const body = JSON.parse(config.data || '{}')
+    const record = {
+      id: `mr-${Date.now()}`,
+      clientId: 'client-1',
+      dataModelId: body.dataModelId,
+      name: body.name,
+      data: body.data || {},
+      createdBy: 'admin',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+    modelRecords.push(record)
+    return created(record)
+  })
+
+  mock.onPut(new RegExp('/model-records/[^/]+/data')).reply((config) => {
+    const parts = config.url?.split('/') || []
+    const id = parts[parts.length - 2]
+    const data = JSON.parse(config.data || '{}')
+    const idx = modelRecords.findIndex((r: any) => r.id === id)
+    if (idx < 0) return notFound('Model record not found')
+    modelRecords[idx] = { ...modelRecords[idx], data, updatedAt: new Date().toISOString() }
+    return ok(modelRecords[idx])
+  })
+
+  mock.onPut(new RegExp('/model-records/[^/]+')).reply((config) => {
+    const id = config.url?.split('/').pop()
+    const body = JSON.parse(config.data || '{}')
+    const idx = modelRecords.findIndex((r: any) => r.id === id)
+    if (idx < 0) return notFound('Model record not found')
+    modelRecords[idx] = {
+      ...modelRecords[idx],
+      name: body.name,
+      data: body.data || {},
+      updatedAt: new Date().toISOString(),
+    }
+    return ok(modelRecords[idx])
+  })
+
+  mock.onDelete(new RegExp('/model-records/[^/]+')).reply((config) => {
+    const id = config.url?.split('/').pop()
+    modelRecords = modelRecords.filter((r: any) => r.id !== id)
+    return ok(null)
+  })
 }
