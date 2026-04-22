@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Plus, Database, Trash2, Pencil, Tag, Copy, AlertCircle,
-  CheckCircle2, ChevronRight, FileJson, Layers, ArrowUpRight, FolderOpen, AlertTriangle
+  CheckCircle2, ChevronRight, FileJson, Layers, ArrowUpRight, FolderOpen, AlertTriangle, FolderInput
 } from 'lucide-react'
 import { usePlanEnforcement } from '../hooks/usePlanEnforcement'
 import { useBillingStore } from '../store/billingStore'
@@ -13,6 +13,9 @@ import {
 import {
   listModelRecords, deleteModelRecord, MOCK_MODEL_RECORDS
 } from '../api/modelRecords'
+import { useNamespaceStore } from '../store/namespaceStore'
+import MoveNamespaceModal from '../components/shared/MoveNamespaceModal'
+import { moveModelNamespace, moveModelRecordNamespace } from '../api/namespaceMove'
 import SearchBar from '../components/shared/SearchBar'
 import ModelEditorModal from '../components/models/ModelEditorModal'
 import ModelRecordModal from '../components/models/ModelRecordModal'
@@ -27,6 +30,7 @@ const isDummy = import.meta.env.VITE_DUMMY_MODE === 'true'
 const Models: React.FC = () => {
   const modelLimit = usePlanEnforcement('models')
   const { fetchUsage } = useBillingStore()
+  const currentNamespace = useNamespaceStore(s => s.currentNamespace)
 
   useEffect(() => { fetchUsage() }, [fetchUsage])
 
@@ -40,21 +44,24 @@ const Models: React.FC = () => {
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [expandedModel, setExpandedModel] = useState<string | null>(null)
+  const [moveTarget, setMoveTarget] = useState<{ open: boolean; entityId: string | null }>({ open: false, entityId: null })
 
   // Fetch models
   useEffect(() => {
     const load = async () => {
+      setLoading(true)
       try {
         const data = await listModels()
         setModels(data)
       } catch {
-        setModels(MOCK_MODELS)
+        const ns = currentNamespace || 'default'
+        setModels(MOCK_MODELS.filter(m => (m.namespace ?? 'default') === ns))
       } finally {
         setLoading(false)
       }
     }
     load()
-  }, [])
+  }, [currentNamespace])
 
   // Flash message helper
   const flash = (msg: string, isError = false) => {
@@ -110,6 +117,22 @@ const Models: React.FC = () => {
     setModels(prev => prev.filter(m => m.id !== model.id))
     flash('Model deleted')
     setConfirmDelete(null)
+  }
+
+  const reloadModels = async () => {
+    try {
+      const data = await listModels()
+      setModels(data)
+    } catch {
+      const ns = currentNamespace || 'default'
+      setModels(MOCK_MODELS.filter(m => (m.namespace ?? 'default') === ns))
+    }
+  }
+
+  const handleMoveConfirm = async (targetNs: string) => {
+    if (!moveTarget.entityId) return
+    await moveModelNamespace(moveTarget.entityId, targetNs)
+    await reloadModels()
   }
 
   const handleDuplicate = async (model: DataModel) => {
@@ -275,6 +298,7 @@ const Models: React.FC = () => {
               onEdit={() => setEditorModel(model)}
               onDelete={() => setConfirmDelete(model)}
               onDuplicate={() => handleDuplicate(model)}
+              onMove={() => setMoveTarget({ open: true, entityId: model.id })}
             />
           ))}
         </div>
@@ -300,6 +324,15 @@ const Models: React.FC = () => {
           onCancel={() => setConfirmDelete(null)}
         />
       )}
+
+      {/* Move namespace modal */}
+      <MoveNamespaceModal
+        open={moveTarget.open}
+        onClose={() => setMoveTarget({ open: false, entityId: null })}
+        onConfirm={handleMoveConfirm}
+        currentNamespace={currentNamespace}
+        entityLabel="Model"
+      />
     </div>
   )
 }
@@ -324,10 +357,11 @@ interface ModelCardProps {
   onEdit: () => void
   onDelete: () => void
   onDuplicate: () => void
+  onMove: () => void
 }
 
 const ModelCard: React.FC<ModelCardProps> = ({
-  model, expanded, onToggle, onEdit, onDelete, onDuplicate
+  model, expanded, onToggle, onEdit, onDelete, onDuplicate, onMove
 }) => {
   const tags = model.tags?.split(',').map(t => t.trim()).filter(Boolean) ?? []
   const fieldCount = model.fieldNames?.length ?? 0
@@ -413,6 +447,10 @@ const ModelCard: React.FC<ModelCardProps> = ({
             className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
             <Pencil size={14} />
           </button>
+          <button onClick={onMove} title="Move to namespace"
+            className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors">
+            <FolderInput size={14} />
+          </button>
           <button onClick={onDelete} title="Delete"
             className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
             <Trash2 size={14} />
@@ -495,25 +533,34 @@ interface ModelRecordsSectionProps {
 }
 
 const ModelRecordsSection: React.FC<ModelRecordsSectionProps> = ({ dataModelId, dataModelName }) => {
+  const currentNamespace = useNamespaceStore(s => s.currentNamespace)
   const [records, setRecords] = useState<ModelRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState<ModelRecord | null | false>(false)
   // false = modal closed, null = creating, ModelRecord = editing
   const [deleteTarget, setDeleteTarget] = useState<ModelRecord | null>(null)
+  const [moveTarget, setMoveTarget] = useState<{ open: boolean; entityId: string | null }>({ open: false, entityId: null })
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const data = await listModelRecords(dataModelId)
-        setRecords(data)
-      } catch {
-        setRecords(MOCK_MODEL_RECORDS.filter(r => r.dataModelId === dataModelId))
-      } finally {
-        setLoading(false)
-      }
+  const loadRecords = async () => {
+    setLoading(true)
+    try {
+      const data = await listModelRecords(dataModelId)
+      setRecords(data)
+    } catch {
+      const ns = currentNamespace || 'default'
+      setRecords(MOCK_MODEL_RECORDS.filter(r => r.dataModelId === dataModelId && ((r as any).namespace ?? 'default') === ns))
+    } finally {
+      setLoading(false)
     }
-    load()
-  }, [dataModelId])
+  }
+
+  useEffect(() => { loadRecords() }, [dataModelId, currentNamespace])
+
+  const handleMoveConfirm = async (targetNs: string) => {
+    if (!moveTarget.entityId) return
+    await moveModelRecordNamespace(moveTarget.entityId, targetNs)
+    await loadRecords()
+  }
 
   const handleSaved = (record: ModelRecord) => {
     if (showModal && typeof showModal === 'object' && showModal.id) {
@@ -577,6 +624,13 @@ const ModelRecordsSection: React.FC<ModelRecordsSectionProps> = ({ dataModelId, 
                   <Pencil size={12} />
                 </button>
                 <button
+                  onClick={() => setMoveTarget({ open: true, entityId: record.id })}
+                  className="p-1 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded"
+                  title="Move to namespace"
+                >
+                  <FolderInput size={12} />
+                </button>
+                <button
                   onClick={() => setDeleteTarget(record)}
                   className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
                   title="Delete"
@@ -611,6 +665,15 @@ const ModelRecordsSection: React.FC<ModelRecordsSectionProps> = ({ dataModelId, 
           onCancel={() => setDeleteTarget(null)}
         />
       )}
+
+      {/* Move namespace modal */}
+      <MoveNamespaceModal
+        open={moveTarget.open}
+        onClose={() => setMoveTarget({ open: false, entityId: null })}
+        onConfirm={handleMoveConfirm}
+        currentNamespace={currentNamespace}
+        entityLabel="Record"
+      />
     </div>
   )
 }

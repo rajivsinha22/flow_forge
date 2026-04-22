@@ -4,6 +4,7 @@ import {
   Filter, Play, Eye, RefreshCw, Pause, XCircle
 } from 'lucide-react'
 import { listExecutions, retryExecution, pauseExecution, cancelExecution } from '../api/executions'
+import { useNamespaceStore } from '../store/namespaceStore'
 import type { Execution } from '../types'
 import SearchBar from '../components/shared/SearchBar'
 import StatusBadge from '../components/shared/StatusBadge'
@@ -23,6 +24,7 @@ const MOCK_EXECUTIONS: Execution[] = [
 
 const ExecutionList: React.FC = () => {
   const navigate = useNavigate()
+  const currentNamespace = useNamespaceStore(s => s.currentNamespace)
   const [executions, setExecutions] = useState<Execution[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchState, setSearchState] = useState<{ q: string; status: string; triggerType: string }>({ q: '', status: '', triggerType: '' })
@@ -32,6 +34,7 @@ const ExecutionList: React.FC = () => {
 
   useEffect(() => {
     const fetchExecs = async () => {
+      setIsLoading(true)
       try {
         const res = await listExecutions()
         setExecutions(Array.isArray(res) ? res : (res?.content ?? []))
@@ -42,7 +45,7 @@ const ExecutionList: React.FC = () => {
       }
     }
     fetchExecs()
-  }, [])
+  }, [currentNamespace])
 
   const filtered = executions.filter((ex) => {
     const q = searchState.q.toLowerCase()

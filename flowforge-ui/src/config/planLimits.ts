@@ -15,6 +15,7 @@ export interface PlanLimitsConfig {
   reqPerMinute: number
   burstCapacity: number
   maxWebhooksPerDay: number
+  maxAiChatMessagesPerDay: number
   priceMonthly: number // cents (0 = free, -1 = custom)
 }
 
@@ -27,6 +28,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimitsConfig> = {
     reqPerMinute: 10,
     burstCapacity: 20,
     maxWebhooksPerDay: 100,
+    maxAiChatMessagesPerDay: 20,
     priceMonthly: 0,
   },
   PRO: {
@@ -37,6 +39,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimitsConfig> = {
     reqPerMinute: 60,
     burstCapacity: 100,
     maxWebhooksPerDay: 10_000,
+    maxAiChatMessagesPerDay: 500,
     priceMonthly: 4_900,
   },
   ENTERPRISE: {
@@ -47,6 +50,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimitsConfig> = {
     reqPerMinute: 600,
     burstCapacity: 1_000,
     maxWebhooksPerDay: -1,
+    maxAiChatMessagesPerDay: -1,
     priceMonthly: -1,
   },
 }
@@ -84,5 +88,6 @@ export function getPlanFeatureRows(): Array<{ label: string; key: keyof PlanLimi
     { label: 'Team Members', key: 'maxTeamMembers' },
     { label: 'API Rate Limit', key: 'reqPerMinute', unit: 'req/min' },
     { label: 'Webhooks / day', key: 'maxWebhooksPerDay' },
+    { label: 'AI chat / day', key: 'maxAiChatMessagesPerDay' },
   ]
 }

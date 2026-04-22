@@ -28,6 +28,7 @@ import AuditLogs from './pages/AuditLogs'
 import Settings from './pages/Settings'
 import Billing from './pages/Billing'
 import Models from './pages/Models'
+import AiChat from './pages/AiChat'
 const NamespaceManagement = lazy(() => import('./pages/NamespaceManagement'))
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -59,6 +60,9 @@ function App() {
         {/* Execution routes */}
         <Route path="/executions" element={<ExecutionList />} />
         <Route path="/executions/:executionId" element={<ExecutionDetail />} />
+
+        {/* AI Insights */}
+        <Route path="/ai-chat" element={<AiChat />} />
 
         {/* Reliability routes */}
         <Route path="/failed-workflows" element={<FailedWorkflows />} />

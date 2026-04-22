@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { Plus, Edit2, GitBranch, Copy, Play, Trash2, Filter, Clock, SlidersHorizontal, AlertTriangle } from 'lucide-react'
+import { Plus, Edit2, GitBranch, Copy, Play, Trash2, Filter, Clock, SlidersHorizontal, AlertTriangle, Sparkles, FolderInput } from 'lucide-react'
 import { usePlanEnforcement } from '../hooks/usePlanEnforcement'
 import { useBillingStore } from '../store/billingStore'
 import { listWorkflows, deleteWorkflow, cloneWorkflow, createWorkflow, updateWorkflow } from '../api/workflows'
+import { useNamespaceStore } from '../store/namespaceStore'
 import type { Workflow } from '../types'
 import SearchBar from '../components/shared/SearchBar'
 import StatusBadge from '../components/shared/StatusBadge'
@@ -11,6 +12,9 @@ import Spinner from '../components/shared/Spinner'
 import ConfirmModal from '../components/shared/ConfirmModal'
 import TriggerWorkflowModal from '../components/workflows/TriggerWorkflowModal'
 import WorkflowFormModal, { type WorkflowFormValues } from '../components/workflows/WorkflowFormModal'
+import OptimizationPanel from '../components/workflows/OptimizationPanel'
+import MoveNamespaceModal from '../components/shared/MoveNamespaceModal'
+import { moveWorkflowNamespace } from '../api/namespaceMove'
 import { formatDistanceToNow } from 'date-fns'
 
 const MOCK_WORKFLOWS: Workflow[] = [
@@ -35,6 +39,7 @@ const WorkflowList: React.FC = () => {
   const { fetchUsage } = useBillingStore()
 
   useEffect(() => { fetchUsage() }, [fetchUsage])
+  const currentNamespace = useNamespaceStore(s => s.currentNamespace)
   const [workflows, setWorkflows] = useState<Workflow[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchState, setSearchState] = useState<{ q: string; status: string; triggerType: string }>({ q: '', status: '', triggerType: '' })
@@ -45,9 +50,12 @@ const WorkflowList: React.FC = () => {
   const [triggerTarget, setTriggerTarget] = useState<Workflow | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Workflow | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [optimizeTarget, setOptimizeTarget] = useState<Workflow | null>(null)
+  const [moveTarget, setMoveTarget] = useState<{ open: boolean; entityId: string | null }>({ open: false, entityId: null })
 
   useEffect(() => {
     const fetchWorkflows = async () => {
+      setIsLoading(true)
       try {
         const res = await listWorkflows()
         const items = Array.isArray(res) ? res : (res?.content ?? [])
@@ -59,7 +67,7 @@ const WorkflowList: React.FC = () => {
       }
     }
     fetchWorkflows()
-  }, [])
+  }, [currentNamespace])
 
   const filtered = workflows.filter((wf) => {
     const q = searchState.q.toLowerCase()
@@ -118,6 +126,24 @@ const WorkflowList: React.FC = () => {
       setIsDeleting(false)
       setDeleteTarget(null)
     }
+  }
+
+  // ── Move to Namespace ─────────────────────────────────────────────────────
+
+  const reloadWorkflows = async () => {
+    try {
+      const res = await listWorkflows()
+      const items = Array.isArray(res) ? res : (res?.content ?? [])
+      setWorkflows(items)
+    } catch {
+      setWorkflows(MOCK_WORKFLOWS)
+    }
+  }
+
+  const handleMoveConfirm = async (targetNs: string) => {
+    if (!moveTarget.entityId) return
+    await moveWorkflowNamespace(moveTarget.entityId, targetNs)
+    await reloadWorkflows()
   }
 
   // ── Clone ─────────────────────────────────────────────────────────────────
@@ -304,6 +330,20 @@ const WorkflowList: React.FC = () => {
                           <Play size={14} />
                         </button>
                         <button
+                          onClick={() => setOptimizeTarget(wf)}
+                          className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                          title="AI Optimize"
+                        >
+                          <Sparkles size={14} />
+                        </button>
+                        <button
+                          onClick={() => setMoveTarget({ open: true, entityId: wf.id })}
+                          className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                          title="Move to namespace"
+                        >
+                          <FolderInput size={14} />
+                        </button>
+                        <button
                           onClick={() => setDeleteTarget(wf)}
                           className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title="Delete"
@@ -350,6 +390,24 @@ const WorkflowList: React.FC = () => {
           }}
         />
       )}
+
+      {/* ── Optimization Panel ────────────────────────────────────────────────── */}
+      {optimizeTarget && (
+        <OptimizationPanel
+          open={!!optimizeTarget}
+          onClose={() => setOptimizeTarget(null)}
+          workflowId={optimizeTarget.id}
+        />
+      )}
+
+      {/* ── Move Namespace Modal ──────────────────────────────────────────────── */}
+      <MoveNamespaceModal
+        open={moveTarget.open}
+        onClose={() => setMoveTarget({ open: false, entityId: null })}
+        onConfirm={handleMoveConfirm}
+        currentNamespace={currentNamespace}
+        entityLabel="Workflow"
+      />
 
       {/* ── Delete Confirm ────────────────────────────────────────────────────── */}
       <ConfirmModal

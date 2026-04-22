@@ -7,7 +7,9 @@ import com.flowforge.integration.repository.TriggerActivationLogRepository;
 import com.flowforge.integration.config.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -159,6 +161,34 @@ public class TriggerService {
                 .activatedAt(LocalDateTime.now())
                 .build();
         activationLogRepository.save(activationLog);
+    }
+
+    public EventTriggerConfig changeNamespace(String id, String newNamespace) {
+        String clientId = TenantContext.getClientId();
+        String currentNamespace = TenantContext.getNamespace();
+
+        EventTriggerConfig trigger = triggerRepository.findById(id)
+                .filter(t -> clientId.equals(t.getClientId()) && currentNamespace.equals(t.getNamespace()))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Trigger not found: " + id));
+
+        if (newNamespace == null || newNamespace.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Target namespace must not be blank");
+        }
+
+        if (newNamespace.equals(currentNamespace)) {
+            return trigger;
+        }
+
+        if (triggerRepository.existsByClientIdAndNamespaceAndName(clientId, newNamespace, trigger.getName())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "A trigger with the same name already exists in namespace '" + newNamespace + "'");
+        }
+
+        trigger.setNamespace(newNamespace);
+        trigger.setUpdatedAt(LocalDateTime.now());
+        return triggerRepository.save(trigger);
     }
 
     private EventTriggerConfig getTriggerOrThrow(String clientId, String triggerId) {

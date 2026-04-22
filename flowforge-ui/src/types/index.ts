@@ -86,6 +86,7 @@ export interface ModelRecord {
   createdBy?: string
   createdAt: string
   updatedAt: string
+  namespace?: string
 }
 
 /**
@@ -152,6 +153,7 @@ export interface FailedWorkflow {
   failedAt: string
   updatedAt?: string
   payload?: unknown
+  namespace?: string
 }
 
 export interface Trigger {
@@ -185,6 +187,7 @@ export interface WebhookDelivery {
   lastAttemptAt?: string
   payload?: unknown
   responseBody?: string
+  namespace?: string
 }
 
 export interface RateLimit {

@@ -51,6 +51,7 @@ export interface DataModel {
   createdBy?: string
   createdAt: string
   updatedAt: string
+  namespace?: string
 }
 
 export interface ErrorHandlingConfig {
@@ -290,6 +291,7 @@ export function jsonSchemaToFields(schemaJson: string): SchemaField[] {
 export const MOCK_MODELS: DataModel[] = [
   {
     id: 'model-1',
+    namespace: 'default',
     clientId: 'client-1',
     name: 'OrderRequest',
     description: 'Schema for incoming order placement requests',
@@ -315,6 +317,7 @@ export const MOCK_MODELS: DataModel[] = [
   },
   {
     id: 'model-2',
+    namespace: 'default',
     clientId: 'client-1',
     name: 'UserRegistration',
     description: 'Schema for new user sign-up payloads',
@@ -339,6 +342,7 @@ export const MOCK_MODELS: DataModel[] = [
   },
   {
     id: 'model-3',
+    namespace: 'apply',
     clientId: 'client-1',
     name: 'WebhookEvent',
     description: 'Generic webhook event envelope',

@@ -38,6 +38,14 @@ flowforge:
   anthropic:
     api-key: ${ANTHROPIC_API_KEY:dummy-key-for-dev}
     api-version: 2023-06-01
+  ai:
+    chat:
+      maxHistoryDays: 30
+      model: claude-haiku-4-5-20251001
+      maxToolIterations: 5
+    optimization:
+      sampleSize: 100
+      model: claude-haiku-4-5-20251001
 
 logging:
   level:

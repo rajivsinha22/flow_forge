@@ -1,6 +1,7 @@
 package com.flowforge.workflow.controller;
 
 import com.flowforge.common.response.ApiResponse;
+import com.flowforge.workflow.dto.ChangeNamespaceRequest;
 import com.flowforge.workflow.dto.CreateWorkflowRequest;
 import com.flowforge.workflow.dto.PublishRequest;
 import com.flowforge.workflow.dto.RollbackRequest;
@@ -23,6 +24,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -215,6 +217,19 @@ public class WorkflowController {
                     "No workflow found with name: " + name);
         }
         return ResponseEntity.ok(ApiResponse.success(versions));
+    }
+
+    /**
+     * PATCH /api/v1/workflows/{id}/namespace
+     * Move a workflow to a different namespace.
+     */
+    @PatchMapping("/{id}/namespace")
+    public ResponseEntity<ApiResponse<WorkflowDefinition>> changeNamespace(
+            @PathVariable String id,
+            @RequestBody ChangeNamespaceRequest request) {
+
+        WorkflowDefinition updated = workflowService.changeNamespace(id, request.getNamespace());
+        return ResponseEntity.ok(ApiResponse.success(updated));
     }
 
     /**

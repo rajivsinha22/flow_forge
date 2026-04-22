@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { getAnalyticsSummary } from '../api/settings'
 import { useBillingStore } from '../store/billingStore'
+import { useNamespaceStore } from '../store/namespaceStore'
 import type { AnalyticsSummary, Execution } from '../types'
 import MetricCard from '../components/shared/MetricCard'
 import StatusBadge from '../components/shared/StatusBadge'
@@ -42,11 +43,13 @@ const Dashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true)
   const navigate = useNavigate()
   const { usage, fetchUsage } = useBillingStore()
+  const currentNamespace = useNamespaceStore(s => s.currentNamespace)
 
   useEffect(() => { fetchUsage() }, [fetchUsage])
 
   useEffect(() => {
     const fetchSummary = async () => {
+      setIsLoading(true)
       try {
         const data = await getAnalyticsSummary()
         setSummary(data)
@@ -57,7 +60,7 @@ const Dashboard: React.FC = () => {
       }
     }
     fetchSummary()
-  }, [])
+  }, [currentNamespace])
 
   if (isLoading) {
     return (

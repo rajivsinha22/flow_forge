@@ -3,13 +3,16 @@ import {
   Plus, Edit2, Trash2, ToggleLeft, ToggleRight, X, Zap,
   ChevronDown, ChevronUp, Search, Loader2, CheckCircle2,
   AlertTriangle, Info, MessageSquare, Clock,
-  Copy,
+  Copy, FolderInput,
 } from 'lucide-react'
 import { listTriggers, createTrigger, updateTrigger, deleteTrigger, enableTrigger, disableTrigger } from '../api/triggers'
 import { listWorkflows } from '../api/workflows'
+import { useNamespaceStore } from '../store/namespaceStore'
+import { moveTriggerNamespace } from '../api/namespaceMove'
 import type { Trigger, TriggerCondition, Workflow } from '../types'
 import StatusBadge from '../components/shared/StatusBadge'
 import ConfirmModal from '../components/shared/ConfirmModal'
+import MoveNamespaceModal from '../components/shared/MoveNamespaceModal'
 import Spinner from '../components/shared/Spinner'
 import ConditionBuilder from '../components/triggers/ConditionBuilder'
 import { format, isValid } from 'date-fns'
@@ -766,6 +769,7 @@ const TriggerDrawer: React.FC<DrawerProps> = ({ trigger, isOpen, onClose, onSave
 // ─── Main EventTriggers page ──────────────────────────────────────────────────
 
 const EventTriggers: React.FC = () => {
+  const currentNamespace = useNamespaceStore(s => s.currentNamespace)
   const [triggers, setTriggers]     = useState<Trigger[]>([])
   const [isLoading, setIsLoading]   = useState(true)
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -773,13 +777,25 @@ const EventTriggers: React.FC = () => {
   const [deleteTarget, setDeleteTarget] = useState<Trigger | null>(null)
   const [isSaving, setIsSaving]     = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [moveTarget, setMoveTarget] = useState<{ open: boolean; entityId: string | null }>({ open: false, entityId: null })
 
-  useEffect(() => {
+  const reloadTriggers = useCallback(() => {
+    setIsLoading(true)
     listTriggers()
       .then((res) => setTriggers(Array.isArray(res) ? res : (res?.content ?? [])))
       .catch(() => setTriggers([]))
       .finally(() => setIsLoading(false))
   }, [])
+
+  useEffect(() => {
+    reloadTriggers()
+  }, [currentNamespace, reloadTriggers])
+
+  const handleMoveConfirm = async (ns: string) => {
+    if (!moveTarget.entityId) return
+    await moveTriggerNamespace(moveTarget.entityId, ns)
+    reloadTriggers()
+  }
 
   const handleSave = async (data: Partial<Trigger>) => {
     setIsSaving(true)
@@ -940,6 +956,13 @@ const EventTriggers: React.FC = () => {
                         <Edit2 size={14} />
                       </button>
                       <button
+                        onClick={() => setMoveTarget({ open: true, entityId: t.id })}
+                        title="Move to namespace"
+                        className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg"
+                      >
+                        <FolderInput size={14} />
+                      </button>
+                      <button
                         onClick={() => setDeleteTarget(t)}
                         className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
                       >
@@ -971,6 +994,14 @@ const EventTriggers: React.FC = () => {
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
         isLoading={isDeleting}
+      />
+
+      <MoveNamespaceModal
+        open={moveTarget.open}
+        onClose={() => setMoveTarget({ open: false, entityId: null })}
+        onConfirm={handleMoveConfirm}
+        currentNamespace={currentNamespace}
+        entityLabel="Trigger"
       />
     </div>
   )

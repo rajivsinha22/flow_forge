@@ -35,6 +35,7 @@ const navItems: NavItem[] = [
   { label: 'Models', to: '/models', icon: <Database size={18} /> },
   { label: 'Workflows', to: '/workflows', icon: <GitBranch size={18} /> },
   { label: 'Executions', to: '/executions', icon: <Play size={18} /> },
+  { label: 'AI Insights', to: '/ai-chat', icon: <Sparkles size={18} /> },
   {
     label: 'Reliability',
     icon: <Inbox size={18} />,

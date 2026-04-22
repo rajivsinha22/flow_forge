@@ -36,3 +36,8 @@ management:
   endpoint:
     health:
       show-details: always
+
+flowforge:
+  anthropic:
+    api-key: ${ANTHROPIC_API_KEY:dummy-key-for-dev}
+    api-version: 2023-06-01

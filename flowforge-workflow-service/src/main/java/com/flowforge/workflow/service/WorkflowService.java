@@ -190,6 +190,34 @@ public class WorkflowService {
         return workflowRepository.save(clone);
     }
 
+    public WorkflowDefinition changeNamespace(String id, String newNamespace) {
+        String clientId = TenantContext.getClientId();
+        String currentNamespace = TenantContext.getNamespace();
+
+        WorkflowDefinition workflow = workflowRepository.findById(id)
+                .filter(w -> clientId.equals(w.getClientId()) && currentNamespace.equals(w.getNamespace()))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Workflow not found: " + id));
+
+        if (newNamespace == null || newNamespace.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Target namespace must not be blank");
+        }
+
+        if (newNamespace.equals(currentNamespace)) {
+            return workflow;
+        }
+
+        if (workflowRepository.existsByClientIdAndNamespaceAndName(clientId, newNamespace, workflow.getName())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "A workflow with the same name already exists in namespace '" + newNamespace + "'");
+        }
+
+        workflow.setNamespace(newNamespace);
+        workflow.setUpdatedAt(LocalDateTime.now());
+        return workflowRepository.save(workflow);
+    }
+
     public List<WorkflowDefinition> getVersionsByName(String clientId, String name) {
         String namespace = TenantContext.getNamespace();
         return workflowRepository.findByClientIdAndNamespaceAndName(clientId, namespace, name);

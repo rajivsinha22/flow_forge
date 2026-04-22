@@ -131,6 +131,34 @@ public class ModelRecordService {
         return modelRecordRepository.save(existing);
     }
 
+    public ModelRecord changeNamespace(String id, String newNamespace) {
+        String clientId = com.flowforge.workflow.config.TenantContext.getClientId();
+        String currentNamespace = com.flowforge.workflow.config.TenantContext.getNamespace();
+
+        ModelRecord record = modelRecordRepository.findByClientIdAndNamespaceAndId(clientId, currentNamespace, id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Model record not found: " + id));
+
+        if (newNamespace == null || newNamespace.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Target namespace must not be blank");
+        }
+
+        if (newNamespace.equals(currentNamespace)) {
+            return record;
+        }
+
+        if (modelRecordRepository.existsByClientIdAndNamespaceAndDataModelIdAndName(
+                clientId, newNamespace, record.getDataModelId(), record.getName())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "A model record with the same name already exists for this data model in namespace '" + newNamespace + "'");
+        }
+
+        record.setNamespace(newNamespace);
+        record.setUpdatedAt(LocalDateTime.now());
+        return modelRecordRepository.save(record);
+    }
+
     public void delete(String clientId, String id) {
         ModelRecord existing = getById(clientId, id);
         log.info("Deleting ModelRecord id={} name={} clientId={}", id, existing.getName(), clientId);

@@ -1,5 +1,6 @@
 package com.flowforge.integration.controller;
 
+import com.flowforge.integration.dto.ChangeNamespaceRequest;
 import com.flowforge.integration.model.EventTriggerConfig;
 import com.flowforge.integration.model.TriggerActivationLog;
 import com.flowforge.integration.service.TriggerService;
@@ -8,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.validation.Valid;
 import java.util.List;
@@ -115,6 +117,27 @@ public class TriggerController {
         log.debug("Getting activation logs for trigger {} (client: {})", id, clientId);
         List<TriggerActivationLog> logs = triggerService.getActivationLogs(clientId, id);
         return ResponseEntity.ok(logs);
+    }
+
+    /**
+     * PATCH /api/v1/triggers/{id}/namespace
+     * Move a trigger to a different namespace.
+     */
+    @PatchMapping("/{id}/namespace")
+    public ResponseEntity<EventTriggerConfig> changeNamespace(
+            @RequestHeader("X-Client-Id") String clientId,
+            @PathVariable String id,
+            @RequestBody ChangeNamespaceRequest request) {
+        log.info("Changing namespace of trigger {} for client: {}", id, clientId);
+        EventTriggerConfig updated = triggerService.changeNamespace(id, request.getNamespace());
+        return ResponseEntity.ok(updated);
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Map<String, String>> handleResponseStatusException(ResponseStatusException ex) {
+        log.warn("TriggerController ResponseStatusException: status={} reason={}", ex.getStatusCode(), ex.getReason());
+        return ResponseEntity.status(ex.getStatusCode())
+                .body(Map.of("error", ex.getReason() != null ? ex.getReason() : ex.getMessage()));
     }
 
     @ExceptionHandler(RuntimeException.class)

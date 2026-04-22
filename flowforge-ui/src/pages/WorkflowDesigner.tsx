@@ -13,7 +13,7 @@ import type { Node, Edge } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import {
   Save, Play, CheckCircle, Upload, Undo2, Redo2, Settings2,
-  ChevronLeft, AlertCircle, CheckCircle2, Loader2, GitBranch, X
+  ChevronLeft, AlertCircle, CheckCircle2, Loader2, GitBranch, X, Sparkles, FileText, LayoutGrid
 } from 'lucide-react'
 import { getWorkflow, updateWorkflow, publishWorkflow, validateWorkflow } from '../api/workflows'
 import TriggerWorkflowModal from '../components/workflows/TriggerWorkflowModal'
@@ -25,6 +25,8 @@ import StepPalette from '../components/canvas/StepPalette'
 import StepConfigPanel from '../components/canvas/StepConfigPanel'
 import type { WorkflowSchemaConfig } from '../components/workflow/WorkflowSchemaSettings'
 import Spinner from '../components/shared/Spinner'
+import OptimizationPanel from '../components/workflows/OptimizationPanel'
+import WorkflowDocsTab from '../components/workflows/WorkflowDocsTab'
 import type { Workflow } from '../types'
 
 const nodeTypes = { stepNode: StepNode }
@@ -92,6 +94,8 @@ const DesignerInner: React.FC<DesignerInnerProps> = ({ workflowName }) => {
   })
   const [schemaConfig, setSchemaConfig] = useState<WorkflowSchemaConfig>({})
   const [showTriggerModal, setShowTriggerModal] = useState(false)
+  const [showOptimizePanel, setShowOptimizePanel] = useState(false)
+  const [activeTab, setActiveTab] = useState<'canvas' | 'docs'>('canvas')
 
   const showToast = (type: Toast['type'], message: string) => {
     const id = Date.now().toString()
@@ -286,7 +290,36 @@ const DesignerInner: React.FC<DesignerInnerProps> = ({ workflowName }) => {
           )}
         </div>
 
+        <div className="ml-4 flex items-center rounded-lg border border-gray-200 p-0.5 bg-gray-50">
+          <button
+            onClick={() => setActiveTab('canvas')}
+            className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+              activeTab === 'canvas' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <LayoutGrid size={12} /> Canvas
+          </button>
+          <button
+            onClick={() => setActiveTab('docs')}
+            className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+              activeTab === 'docs' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <FileText size={12} /> Docs
+          </button>
+        </div>
+
         <div className="flex items-center gap-1.5 ml-auto">
+          <button
+            onClick={() => setShowOptimizePanel(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100"
+            title="AI Optimize"
+          >
+            <Sparkles size={13} /> Optimize
+          </button>
+
+          <div className="w-px h-5 bg-gray-200 mx-1" />
+
           <button
             onClick={undo}
             disabled={historyIndex <= 0}
@@ -351,6 +384,13 @@ const DesignerInner: React.FC<DesignerInnerProps> = ({ workflowName }) => {
       </div>
 
       {/* Main area */}
+      {activeTab === 'docs' && workflow && (
+        <div className="flex-1 overflow-y-auto bg-white">
+          <WorkflowDocsTab workflowId={workflow.id} />
+        </div>
+      )}
+
+      {activeTab === 'canvas' && (
       <div className="flex flex-1 overflow-hidden">
         {/* Left panel - Step Palette */}
         <div className="w-[200px] bg-white border-r border-gray-200 flex flex-col flex-shrink-0 overflow-y-auto">
@@ -405,6 +445,16 @@ const DesignerInner: React.FC<DesignerInnerProps> = ({ workflowName }) => {
           </div>
         )}
       </div>
+      )}
+
+      {/* Optimization Panel */}
+      {workflow && (
+        <OptimizationPanel
+          open={showOptimizePanel}
+          onClose={() => setShowOptimizePanel(false)}
+          workflowId={workflow.id}
+        />
+      )}
 
       {/* Settings modal */}
       {showSettingsModal && workflow && (

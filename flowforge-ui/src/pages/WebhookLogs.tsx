@@ -3,6 +3,7 @@ import { RefreshCw, ChevronDown, ChevronRight, CheckCircle2, XCircle, Clock, Web
 import { listWebhookDeliveries, retryWebhookDelivery, getWebhookStats } from '../api/webhooks'
 import type { WebhookDelivery } from '../types'
 import type { WebhookStats } from '../api/webhooks'
+import { useNamespaceStore } from '../store/namespaceStore'
 import StatusBadge from '../components/shared/StatusBadge'
 import Spinner from '../components/shared/Spinner'
 import JsonViewer from '../components/shared/JsonViewer'
@@ -87,6 +88,7 @@ const DeliveryRow: React.FC<{ delivery: WebhookDelivery; onRetry: (id: string) =
 }
 
 const WebhookLogs: React.FC = () => {
+  const currentNamespace = useNamespaceStore(s => s.currentNamespace)
   const [deliveries, setDeliveries] = useState<WebhookDelivery[]>([])
   const [stats, setStats] = useState<WebhookStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -94,6 +96,7 @@ const WebhookLogs: React.FC = () => {
 
   useEffect(() => {
     const fetch = async () => {
+      setIsLoading(true)
       try {
         const [d, s] = await Promise.all([listWebhookDeliveries(), getWebhookStats()])
         setDeliveries(Array.isArray(d) ? d : (d?.content ?? []))
@@ -106,7 +109,7 @@ const WebhookLogs: React.FC = () => {
       }
     }
     fetch()
-  }, [])
+  }, [currentNamespace])
 
   const handleRetry = async (id: string) => {
     try {

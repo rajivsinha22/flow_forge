@@ -134,6 +134,33 @@ public class DataModelService {
         return dataModelRepository.save(existing);
     }
 
+    public DataModel changeNamespace(String id, String newNamespace) {
+        String clientId = TenantContext.getClientId();
+        String currentNamespace = TenantContext.getNamespace();
+
+        DataModel model = dataModelRepository.findByClientIdAndNamespaceAndId(clientId, currentNamespace, id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Data model not found: " + id));
+
+        if (newNamespace == null || newNamespace.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Target namespace must not be blank");
+        }
+
+        if (newNamespace.equals(currentNamespace)) {
+            return model;
+        }
+
+        if (dataModelRepository.existsByClientIdAndNamespaceAndName(clientId, newNamespace, model.getName())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "A data model with the same name already exists in namespace '" + newNamespace + "'");
+        }
+
+        model.setNamespace(newNamespace);
+        model.setUpdatedAt(LocalDateTime.now());
+        return dataModelRepository.save(model);
+    }
+
     public void delete(String clientId, String id) {
         DataModel existing = getById(clientId, id);
         log.info("Deleting DataModel id={} name={} clientId={}", id, existing.getName(), clientId);

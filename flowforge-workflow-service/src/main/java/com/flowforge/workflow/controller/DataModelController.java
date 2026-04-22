@@ -1,6 +1,7 @@
 package com.flowforge.workflow.controller;
 
 import com.flowforge.common.response.ApiResponse;
+import com.flowforge.workflow.dto.ChangeNamespaceRequest;
 import com.flowforge.workflow.dto.DataModelRequest;
 import com.flowforge.workflow.dto.ValidatePayloadRequest;
 import com.flowforge.workflow.model.DataModel;
@@ -108,6 +109,19 @@ public class DataModelController {
 
         dataModelService.delete(clientId, id);
         return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    /**
+     * PATCH /api/v1/models/{id}/namespace
+     * Move a data model to a different namespace.
+     */
+    @PatchMapping("/{id}/namespace")
+    public ResponseEntity<ApiResponse<DataModel>> changeNamespace(
+            @PathVariable String id,
+            @RequestBody ChangeNamespaceRequest request) {
+
+        DataModel updated = dataModelService.changeNamespace(id, request.getNamespace());
+        return ResponseEntity.ok(ApiResponse.success(updated));
     }
 
     /**

@@ -1,106 +1,56 @@
 package com.flowforge.execution.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.flowforge.execution.client.ClaudeClient;
 import com.flowforge.execution.dto.AiAnalysisResult;
 import com.flowforge.execution.model.StepExecution;
 import com.flowforge.execution.model.WorkflowExecution;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
 
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * AiAnalysisService
  *
  * Builds a structured prompt from a failed workflow execution trace and calls
- * the Anthropic Claude API to produce a human-readable failure analysis with:
- *   - summary     — one-paragraph description of what happened
- *   - rootCause   — the specific underlying cause of the failure
- *   - suggestions — actionable list of fixes the user can apply
+ * the Anthropic Claude API via ClaudeClient to produce a human-readable failure
+ * analysis.
  */
 @Service
 public class AiAnalysisService {
 
     private static final Logger log = LoggerFactory.getLogger(AiAnalysisService.class);
 
-    private static final String ANTHROPIC_MESSAGES_URL = "https://api.anthropic.com/v1/messages";
     private static final String ANALYSIS_MODEL = "claude-haiku-4-5-20251001";
     private static final int MAX_TOKENS = 1024;
-    private static final double TEMPERATURE = 0.3;  // Low temperature for structured output
-    private static final int TIMEOUT_SECONDS = 30;
-    private static final int MAX_JSON_CHARS = 2000;  // Truncate large payloads to stay within context
+    private static final double TEMPERATURE = 0.3;
+    private static final int MAX_JSON_CHARS = 2000;
 
-    @Value("${flowforge.anthropic.api-key}")
-    private String anthropicApiKey;
+    private static final String SYSTEM_PROMPT =
+            "You are an expert workflow automation engineer. " +
+            "Analyze failed workflow executions and respond ONLY with valid JSON in the exact format requested. " +
+            "Do not include any text before or after the JSON object.";
 
-    @Value("${flowforge.anthropic.api-version:2023-06-01}")
-    private String anthropicApiVersion;
-
-    private final WebClient webClient;
+    private final ClaudeClient claudeClient;
     private final ObjectMapper objectMapper;
 
-    public AiAnalysisService(WebClient webClient, ObjectMapper objectMapper) {
-        this.webClient = webClient;
+    public AiAnalysisService(ClaudeClient claudeClient, ObjectMapper objectMapper) {
+        this.claudeClient = claudeClient;
         this.objectMapper = objectMapper;
     }
 
-    /**
-     * Analyze a failed workflow execution and return structured diagnosis.
-     *
-     * @param execution    The failed WorkflowExecution record
-     * @param stepExecutions All StepExecution records for this execution
-     * @return AiAnalysisResult with summary, rootCause, and suggestions
-     */
     public AiAnalysisResult analyzeExecution(WorkflowExecution execution,
                                               List<StepExecution> stepExecutions) throws Exception {
 
         String prompt = buildPrompt(execution, stepExecutions);
         log.debug("Sending execution {} to AI for analysis ({} chars)", execution.getId(), prompt.length());
 
-        // ── Build Anthropic request ────────────────────────────────────────────
-        Map<String, Object> userMessage = new HashMap<>();
-        userMessage.put("role", "user");
-        userMessage.put("content", prompt);
+        String responseText = claudeClient.call(SYSTEM_PROMPT, prompt, ANALYSIS_MODEL, MAX_TOKENS, TEMPERATURE);
 
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("model", ANALYSIS_MODEL);
-        requestBody.put("max_tokens", MAX_TOKENS);
-        requestBody.put("temperature", TEMPERATURE);
-        requestBody.put("messages", List.of(userMessage));
-        requestBody.put("system",
-                "You are an expert workflow automation engineer. " +
-                "Analyze failed workflow executions and respond ONLY with valid JSON in the exact format requested. " +
-                "Do not include any text before or after the JSON object.");
-
-        String requestJson = objectMapper.writeValueAsString(requestBody);
-
-        String rawResponse = webClient
-                .post()
-                .uri(ANTHROPIC_MESSAGES_URL)
-                .header("x-api-key", anthropicApiKey)
-                .header("anthropic-version", anthropicApiVersion)
-                .header("content-type", "application/json")
-                .bodyValue(requestJson)
-                .retrieve()
-                .bodyToMono(String.class)
-                .timeout(Duration.ofSeconds(TIMEOUT_SECONDS))
-                .block();
-
-        // ── Extract text from Anthropic response ──────────────────────────────
-        JsonNode responseNode = objectMapper.readTree(rawResponse);
-        String responseText = responseNode.path("content").path(0).path("text").asText("");
-
-        // Strip markdown code fences that Claude sometimes includes despite instructions
-        responseText = responseText.trim();
+        responseText = responseText == null ? "" : responseText.trim();
         if (responseText.startsWith("```")) {
             responseText = responseText
                     .replaceFirst("(?s)^```(?:json)?\\s*", "")
@@ -108,7 +58,6 @@ public class AiAnalysisService {
                     .trim();
         }
 
-        // ── Parse the JSON result ──────────────────────────────────────────────
         try {
             AiAnalysisResult result = objectMapper.readValue(responseText, AiAnalysisResult.class);
             log.info("AI analysis complete for execution {}", execution.getId());
@@ -116,7 +65,6 @@ public class AiAnalysisService {
         } catch (Exception parseEx) {
             log.warn("Failed to parse AI analysis JSON for execution {}: {}. Raw: {}",
                     execution.getId(), parseEx.getMessage(), responseText);
-            // Fallback: wrap the raw text in a result
             return new AiAnalysisResult(
                     responseText,
                     "Could not parse structured analysis — see summary for details.",
@@ -124,8 +72,6 @@ public class AiAnalysisService {
             );
         }
     }
-
-    // ── Prompt construction ────────────────────────────────────────────────────
 
     private String buildPrompt(WorkflowExecution execution, List<StepExecution> stepExecutions) {
         List<StepExecution> failedSteps = stepExecutions.stream()
@@ -177,7 +123,6 @@ public class AiAnalysisService {
             }
         }
 
-        // Brief summary of all steps
         if (!stepExecutions.isEmpty()) {
             sb.append("=== ALL STEPS ===\n");
             for (StepExecution step : stepExecutions) {

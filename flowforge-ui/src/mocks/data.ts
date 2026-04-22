@@ -119,7 +119,7 @@ export const DUMMY_WORKFLOWS = [
   },
   {
     id: 'wf_004', name: 'refund-processor', displayName: 'Refund Processor',
-    namespace: 'default',
+    namespace: 'apply',
     triggerType: 'CRON', version: 1, status: 'DRAFT',
     publishedAt: null,
     lastRunAt: null, lastRunStatus: null,
@@ -153,7 +153,7 @@ export const DUMMY_WORKFLOWS = [
   },
   {
     id: 'wf_006', name: 'fraud-detection', displayName: 'Fraud Detection',
-    namespace: 'default',
+    namespace: 'apply',
     triggerType: 'KAFKA', version: 2, status: 'PUBLISHED',
     publishedAt: '2025-02-28T16:00:00Z',
     lastRunAt: '2026-03-18T10:05:00Z', lastRunStatus: 'SUCCESS',
@@ -182,26 +182,26 @@ export const DUMMY_EXECUTIONS = [
   { id: 'exec_002', namespace: 'default', workflowName: 'payment-flow',       workflowVersion: 2, status: 'RUNNING', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(1),   completedAt: null,     durationMs: 0 },
   { id: 'exec_003', namespace: 'default', workflowName: 'user-onboarding',    workflowVersion: 1, status: 'FAILED',  triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(90),  completedAt: ago(89),  durationMs: 820 },
   { id: 'exec_004', namespace: 'default', workflowName: 'order-processing',   workflowVersion: 3, status: 'PAUSED',  triggerType: 'API',     triggeredBy: 'ci@acme.com',    startedAt: ago(30),  completedAt: null,     durationMs: 0 },
-  { id: 'exec_005', namespace: 'default', workflowName: 'email-campaign',     workflowVersion: 5, status: 'SUCCESS', triggerType: 'API',     triggeredBy: 'priya@acme.com', startedAt: ago(180), completedAt: ago(177), durationMs: 3400 },
-  { id: 'exec_006', namespace: 'default', workflowName: 'fraud-detection',    workflowVersion: 2, status: 'SUCCESS', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(5),   completedAt: ago(4),   durationMs: 560 },
+  { id: 'exec_005', namespace: 'apply', workflowName: 'email-campaign',     workflowVersion: 5, status: 'SUCCESS', triggerType: 'API',     triggeredBy: 'priya@acme.com', startedAt: ago(180), completedAt: ago(177), durationMs: 3400 },
+  { id: 'exec_006', namespace: 'apply', workflowName: 'fraud-detection',    workflowVersion: 2, status: 'SUCCESS', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(5),   completedAt: ago(4),   durationMs: 560 },
   { id: 'exec_007', namespace: 'default', workflowName: 'order-processing',   workflowVersion: 3, status: 'SUCCESS', triggerType: 'API',     triggeredBy: 'admin@acme.com', startedAt: ago(360), completedAt: ago(359), durationMs: 1100 },
   { id: 'exec_008', namespace: 'default', workflowName: 'payment-flow',       workflowVersion: 2, status: 'FAILED',  triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(240), completedAt: ago(239), durationMs: 430 },
   { id: 'exec_009', namespace: 'default', workflowName: 'user-onboarding',    workflowVersion: 1, status: 'WAITING', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(45),  completedAt: null,     durationMs: 0 },
-  { id: 'exec_010', namespace: 'default', workflowName: 'fraud-detection',    workflowVersion: 2, status: 'SUCCESS', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(10),  completedAt: ago(9),   durationMs: 590 },
+  { id: 'exec_010', namespace: 'apply', workflowName: 'fraud-detection',    workflowVersion: 2, status: 'SUCCESS', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(10),  completedAt: ago(9),   durationMs: 590 },
   { id: 'exec_011', namespace: 'default', workflowName: 'order-processing',   workflowVersion: 3, status: 'SUCCESS', triggerType: 'API',     triggeredBy: 'ci@acme.com',    startedAt: ago(720), completedAt: ago(719), durationMs: 980 },
-  { id: 'exec_012', namespace: 'default', workflowName: 'email-campaign',     workflowVersion: 5, status: 'FAILED',  triggerType: 'CRON',    triggeredBy: 'cron-trigger',   startedAt: ago(1440),completedAt: ago(1439),durationMs: 760 },
+  { id: 'exec_012', namespace: 'apply', workflowName: 'email-campaign',     workflowVersion: 5, status: 'FAILED',  triggerType: 'CRON',    triggeredBy: 'cron-trigger',   startedAt: ago(1440),completedAt: ago(1439),durationMs: 760 },
   { id: 'exec_013', namespace: 'default', workflowName: 'payment-flow',       workflowVersion: 2, status: 'SUCCESS', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(480), completedAt: ago(478), durationMs: 2100 },
-  { id: 'exec_014', namespace: 'default', workflowName: 'fraud-detection',    workflowVersion: 2, status: 'SUCCESS', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(15),  completedAt: ago(14),  durationMs: 610 },
+  { id: 'exec_014', namespace: 'apply', workflowName: 'fraud-detection',    workflowVersion: 2, status: 'SUCCESS', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(15),  completedAt: ago(14),  durationMs: 610 },
   { id: 'exec_015', namespace: 'default', workflowName: 'order-processing',   workflowVersion: 2, status: 'SUCCESS', triggerType: 'API',     triggeredBy: 'admin@acme.com', startedAt: ago(1500),completedAt: ago(1499),durationMs: 1350 },
   { id: 'exec_016', namespace: 'default', workflowName: 'user-onboarding',    workflowVersion: 1, status: 'SUCCESS', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(600), completedAt: ago(597), durationMs: 3020 },
-  { id: 'exec_017', namespace: 'default', workflowName: 'email-campaign',     workflowVersion: 5, status: 'SUCCESS', triggerType: 'API',     triggeredBy: 'priya@acme.com', startedAt: ago(800), completedAt: ago(797), durationMs: 3600 },
+  { id: 'exec_017', namespace: 'apply', workflowName: 'email-campaign',     workflowVersion: 5, status: 'SUCCESS', triggerType: 'API',     triggeredBy: 'priya@acme.com', startedAt: ago(800), completedAt: ago(797), durationMs: 3600 },
   { id: 'exec_018', namespace: 'default', workflowName: 'payment-flow',       workflowVersion: 2, status: 'FAILED',  triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(900), completedAt: ago(899), durationMs: 340 },
-  { id: 'exec_019', namespace: 'default', workflowName: 'fraud-detection',    workflowVersion: 2, status: 'SUCCESS', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(20),  completedAt: ago(19),  durationMs: 580 },
+  { id: 'exec_019', namespace: 'apply', workflowName: 'fraud-detection',    workflowVersion: 2, status: 'SUCCESS', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(20),  completedAt: ago(19),  durationMs: 580 },
   { id: 'exec_020', namespace: 'default', workflowName: 'order-processing',   workflowVersion: 3, status: 'SUCCESS', triggerType: 'API',     triggeredBy: 'ci@acme.com',    startedAt: ago(25),  completedAt: ago(24),  durationMs: 1190 },
   { id: 'exec_021', namespace: 'default', workflowName: 'user-onboarding',    workflowVersion: 1, status: 'FAILED',  triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(2880),completedAt: ago(2879),durationMs: 950 },
-  { id: 'exec_022', namespace: 'default', workflowName: 'fraud-detection',    workflowVersion: 2, status: 'SUCCESS', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(35),  completedAt: ago(34),  durationMs: 610 },
+  { id: 'exec_022', namespace: 'apply', workflowName: 'fraud-detection',    workflowVersion: 2, status: 'SUCCESS', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(35),  completedAt: ago(34),  durationMs: 610 },
   { id: 'exec_023', namespace: 'default', workflowName: 'order-processing',   workflowVersion: 3, status: 'RUNNING', triggerType: 'API',     triggeredBy: 'admin@acme.com', startedAt: ago(3),   completedAt: null,     durationMs: 0 },
-  { id: 'exec_024', namespace: 'default', workflowName: 'email-campaign',     workflowVersion: 5, status: 'SUCCESS', triggerType: 'CRON',    triggeredBy: 'cron-trigger',   startedAt: ago(1500),completedAt: ago(1497),durationMs: 4100 },
+  { id: 'exec_024', namespace: 'apply', workflowName: 'email-campaign',     workflowVersion: 5, status: 'SUCCESS', triggerType: 'CRON',    triggeredBy: 'cron-trigger',   startedAt: ago(1500),completedAt: ago(1497),durationMs: 4100 },
   { id: 'exec_025', namespace: 'default', workflowName: 'payment-flow',       workflowVersion: 2, status: 'SUCCESS', triggerType: 'KAFKA',   triggeredBy: 'kafka-trigger',  startedAt: ago(60),  completedAt: ago(58),  durationMs: 1800 },
 ]
 
@@ -545,7 +545,7 @@ export const DUMMY_WAIT_TOKENS = [
 // ─── DUMMY FAILED WORKFLOW ENTRIES ───────────────────────────────────────────
 export const DUMMY_FAILED_WORKFLOWS = [
   {
-    id: 'dlq_001', executionId: 'exec_003', workflowName: 'user-onboarding', stepName: 'sendWelcomeEmail',
+    id: 'dlq_001', namespace: 'default', executionId: 'exec_003', workflowName: 'user-onboarding', stepName: 'sendWelcomeEmail',
     stepType: 'NOTIFY', failureReason: 'SMTP connection timeout after 3 retries', retryCount: 3, status: 'PENDING',
     failedAt: ago(89),
     retryAttempts: [
@@ -558,7 +558,7 @@ export const DUMMY_FAILED_WORKFLOWS = [
     ],
   },
   {
-    id: 'dlq_002', executionId: 'exec_008', workflowName: 'payment-flow', stepName: 'chargeCard',
+    id: 'dlq_002', namespace: 'default', executionId: 'exec_008', workflowName: 'payment-flow', stepName: 'chargeCard',
     stepType: 'HTTP', failureReason: 'Payment gateway returned 502 Bad Gateway', retryCount: 3, status: 'PENDING',
     failedAt: ago(239),
     retryAttempts: [
@@ -569,7 +569,7 @@ export const DUMMY_FAILED_WORKFLOWS = [
     replayHistory: [],
   },
   {
-    id: 'dlq_003', executionId: 'exec_012', workflowName: 'email-campaign', stepName: 'sendEmail',
+    id: 'dlq_003', namespace: 'apply', executionId: 'exec_012', workflowName: 'email-campaign', stepName: 'sendEmail',
     stepType: 'NOTIFY', failureReason: 'Rate limit exceeded (429) on email provider', retryCount: 3, status: 'PENDING',
     failedAt: ago(1439),
     retryAttempts: [
@@ -580,7 +580,7 @@ export const DUMMY_FAILED_WORKFLOWS = [
     replayHistory: [],
   },
   {
-    id: 'dlq_004', executionId: 'exec_018', workflowName: 'payment-flow', stepName: 'chargeCard',
+    id: 'dlq_004', namespace: 'default', executionId: 'exec_018', workflowName: 'payment-flow', stepName: 'chargeCard',
     stepType: 'HTTP', failureReason: 'SSL certificate error: certificate expired', retryCount: 3, status: 'DISCARDED',
     failedAt: ago(899),
     retryAttempts: [
@@ -594,7 +594,7 @@ export const DUMMY_FAILED_WORKFLOWS = [
     ],
   },
   {
-    id: 'dlq_005', executionId: 'exec_021', workflowName: 'user-onboarding', stepName: 'createAccount',
+    id: 'dlq_005', namespace: 'default', executionId: 'exec_021', workflowName: 'user-onboarding', stepName: 'createAccount',
     stepType: 'HTTP', failureReason: 'Upstream service returned 500 Internal Server Error', retryCount: 3, status: 'PENDING',
     failedAt: ago(2879),
     retryAttempts: [
@@ -608,7 +608,7 @@ export const DUMMY_FAILED_WORKFLOWS = [
   },
   {
     // Full error trail demo — every auto-retry AND every manual replay also failed
-    id: 'dlq_006', executionId: 'exec_029', workflowName: 'payment-flow', stepName: 'chargeCard',
+    id: 'dlq_006', namespace: 'apply', executionId: 'exec_029', workflowName: 'payment-flow', stepName: 'chargeCard',
     stepType: 'HTTP', failureReason: 'SSL certificate verification failed: unable to get local issuer certificate',
     retryCount: 5, status: 'PENDING',
     failedAt: ago(4320),
@@ -637,19 +637,19 @@ export const DUMMY_FAILED_WORKFLOWS = [
 // ─── DUMMY TRIGGERS ───────────────────────────────────────────────────────────
 export const DUMMY_TRIGGERS = [
   {
-    id: 'trig_001', name: 'New Order Created', sourceType: 'KAFKA', workflowName: 'order-processing',
+    id: 'trig_001', namespace: 'default', name: 'New Order Created', sourceType: 'KAFKA', workflowName: 'order-processing',
     workflowId: 'wf_001', topicOrUrl: 'orders.created', enabled: true, triggerAction: 'FIRE_WORKFLOW',
     condition: { conditionType: 'FIELD_EQUALS', fieldPath: 'data.status', expectedValue: 'NEW', label: 'Only NEW orders' },
     createdAt: ago(5000),
   },
   {
-    id: 'trig_003', name: 'Nightly Batch Refund', sourceType: 'CRON', workflowName: 'refund-processor',
+    id: 'trig_003', namespace: 'apply', name: 'Nightly Batch Refund', sourceType: 'CRON', workflowName: 'refund-processor',
     workflowId: 'wf_004', topicOrUrl: '0 2 * * *', enabled: false, triggerAction: 'FIRE_WORKFLOW',
     condition: { conditionType: 'ALWAYS' },
     createdAt: ago(3000),
   },
   {
-    id: 'trig_004', name: 'User Signup Event', sourceType: 'KAFKA', workflowName: 'user-onboarding',
+    id: 'trig_004', namespace: 'default', name: 'User Signup Event', sourceType: 'KAFKA', workflowName: 'user-onboarding',
     workflowId: 'wf_003', topicOrUrl: 'users.registered', enabled: true, triggerAction: 'FIRE_WORKFLOW',
     condition: {
       conditionType: 'AND',
@@ -661,7 +661,7 @@ export const DUMMY_TRIGGERS = [
     createdAt: ago(2000),
   },
   {
-    id: 'trig_005', name: 'Verify Email Resume', sourceType: 'KAFKA', workflowName: 'user-onboarding',
+    id: 'trig_005', namespace: 'default', name: 'Verify Email Resume', sourceType: 'KAFKA', workflowName: 'user-onboarding',
     workflowId: 'wf_003', topicOrUrl: 'users.email_verified', enabled: true, triggerAction: 'RESUME_WAIT',
     resumeTokenPath: 'data.waitToken',
     condition: { conditionType: 'FIELD_EXISTS', fieldPath: 'data.waitToken' },
@@ -672,14 +672,14 @@ export const DUMMY_TRIGGERS = [
 // ─── DUMMY WEBHOOK DELIVERIES ─────────────────────────────────────────────────
 export const DUMMY_WEBHOOK_DELIVERIES = [
   {
-    id: 'wh_001', executionId: 'exec_001', event: 'EXECUTION_COMPLETED', status: 'DELIVERED',
+    id: 'wh_001', namespace: 'default', executionId: 'exec_001', event: 'EXECUTION_COMPLETED', status: 'DELIVERED',
     targetUrl: 'https://hooks.acme.com/flowforge', attempts: 1, maxAttempts: 5, sentAt: ago(1),
     deliveryAttempts: [
       { attemptNumber: 1, statusCode: 200, durationMs: 143, sentAt: ago(1), response: 'OK' },
     ],
   },
   {
-    id: 'wh_002', executionId: 'exec_003', event: 'EXECUTION_FAILED', status: 'DELIVERED',
+    id: 'wh_002', namespace: 'default', executionId: 'exec_003', event: 'EXECUTION_FAILED', status: 'DELIVERED',
     targetUrl: 'https://hooks.acme.com/flowforge', attempts: 2, maxAttempts: 5, sentAt: ago(89),
     deliveryAttempts: [
       { attemptNumber: 1, statusCode: 503, durationMs: 2100, sentAt: ago(89), response: 'Service Unavailable' },
@@ -687,7 +687,7 @@ export const DUMMY_WEBHOOK_DELIVERIES = [
     ],
   },
   {
-    id: 'wh_003', executionId: 'exec_008', event: 'STEP_DEAD_LETTERED', status: 'FAILED',
+    id: 'wh_003', namespace: 'default', executionId: 'exec_008', event: 'STEP_DEAD_LETTERED', status: 'FAILED',
     targetUrl: 'https://hooks.acme.com/flowforge', attempts: 5, maxAttempts: 5, sentAt: ago(239),
     deliveryAttempts: [
       { attemptNumber: 1, statusCode: 503, durationMs: 2100, sentAt: ago(239) },
@@ -698,7 +698,7 @@ export const DUMMY_WEBHOOK_DELIVERIES = [
     ],
   },
   {
-    id: 'wh_004', executionId: 'exec_005', event: 'EXECUTION_COMPLETED', status: 'DELIVERED',
+    id: 'wh_004', namespace: 'apply', executionId: 'exec_005', event: 'EXECUTION_COMPLETED', status: 'DELIVERED',
     targetUrl: 'https://hooks.acme.com/flowforge', attempts: 1, maxAttempts: 5, sentAt: ago(177),
     deliveryAttempts: [
       { attemptNumber: 1, statusCode: 200, durationMs: 210, sentAt: ago(177), response: 'OK' },
@@ -812,6 +812,7 @@ export const DUMMY_WORKFLOW_VERSIONS: Record<string, Array<{
 export const DUMMY_MODEL_RECORDS = [
   {
     id: 'mr-1',
+    namespace: 'default',
     clientId: 'client-1',
     dataModelId: 'model-1',
     name: 'Order #ORD-2026-0042',
@@ -828,6 +829,7 @@ export const DUMMY_MODEL_RECORDS = [
   },
   {
     id: 'mr-2',
+    namespace: 'default',
     clientId: 'client-1',
     dataModelId: 'model-1',
     name: 'Order #ORD-2026-0099',
@@ -844,6 +846,7 @@ export const DUMMY_MODEL_RECORDS = [
   },
   {
     id: 'mr-3',
+    namespace: 'default',
     clientId: 'client-1',
     dataModelId: 'model-2',
     name: 'New User — jane@example.com',
@@ -859,6 +862,7 @@ export const DUMMY_MODEL_RECORDS = [
   },
   {
     id: 'mr-4',
+    namespace: 'apply',
     clientId: 'client-1',
     dataModelId: 'model-2',
     name: 'Admin — bob@example.com',
@@ -930,9 +934,113 @@ export const DUMMY_INVITATIONS: PendingInvitation[] = [
   },
 ]
 
+// ─── DUMMY AI CHAT SAMPLES ───────────────────────────────────────────────────
+export const DUMMY_AI_CHAT_SAMPLES: Array<{
+  match: string[]
+  answer: string
+  citations: Array<{ type: 'execution' | 'workflow'; id: string; label: string }>
+}> = [
+  {
+    match: ['fail', 'failed', 'error', 'why'],
+    answer: 'The most recent failure was in the **user-onboarding** workflow (execution `exec_003`). The `sendWelcomeEmail` NOTIFY step exhausted all 3 retry attempts due to SMTP connection timeouts to `mail.acme.com:587`. I recommend verifying mail server reachability and adding a fallback channel like Slack.',
+    citations: [
+      { type: 'execution', id: 'exec_003', label: 'exec_003 — user-onboarding' },
+      { type: 'workflow', id: 'user-onboarding', label: 'user-onboarding workflow' },
+    ],
+  },
+  {
+    match: ['slow', 'slowest', 'performance', 'duration'],
+    answer: 'Your slowest workflows over the last 7 days:\n\n1. **data-pipeline** — avg 42s (4 executions)\n2. **invoice-sync** — avg 18s (12 executions)\n3. **order-processing** — avg 6s (120 executions)\n\nThe data-pipeline workflow spends ~70% of its time in a single HTTP_REQUEST step calling a downstream analytics service — consider parallelizing the independent fan-out branches.',
+    citations: [
+      { type: 'workflow', id: 'data-pipeline', label: 'data-pipeline' },
+      { type: 'workflow', id: 'invoice-sync', label: 'invoice-sync' },
+    ],
+  },
+  {
+    match: ['order', 'orders', 'order-processing'],
+    answer: 'The **order-processing** workflow has executed 120 times in the last 7 days with a 97.5% success rate. The 3 failures were all due to inventory-service timeouts during peak hours (14:00–16:00 UTC). Adding an exponential-backoff retry policy to the `check-inventory` step should resolve most of these.',
+    citations: [
+      { type: 'workflow', id: 'order-processing', label: 'order-processing' },
+      { type: 'execution', id: 'exec_001', label: 'exec_001' },
+    ],
+  },
+  {
+    match: ['hi', 'hello', 'hey'],
+    answer: 'Hi! I can help you understand your workflows and executions. Try asking:\n- Why did workflow X fail?\n- What are my slowest workflows?\n- Show me recent failures in order-processing.',
+    citations: [],
+  },
+]
+
+// ─── DUMMY OPTIMIZATION SUGGESTIONS ──────────────────────────────────────────
+export const DUMMY_OPTIMIZATION_SUGGESTIONS = [
+  {
+    type: 'RETRY_TUNING' as const,
+    severity: 'WARN' as const,
+    stepId: 'check-inventory',
+    description: 'Increase retry count and backoff for check-inventory step',
+    rationale: 'Over the last 50 executions, this step failed transiently 8 times and was retried only once before bubbling up. Bumping retries to 3 with exponential backoff (starting at 2s) would resolve ~90% of these failures without impacting latency in the happy path.',
+  },
+  {
+    type: 'PARALLELIZATION' as const,
+    severity: 'INFO' as const,
+    stepId: 'send-confirm',
+    description: 'Run sendConfirm and notifyOps in parallel',
+    rationale: 'These two NOTIFY steps are independent — neither consumes the output of the other — and currently run sequentially, adding ~800ms of latency. Parallelizing them via a fan-out branch would bring total workflow duration down from ~3.2s to ~2.4s.',
+  },
+  {
+    type: 'RATE_LIMIT_RISK' as const,
+    severity: 'CRITICAL' as const,
+    stepId: 'validate-order',
+    description: 'Validate-order is approaching the downstream API rate limit',
+    rationale: 'The validate-order HTTP_REQUEST step hit the downstream rate limit (429 responses) twice in the last 24h during peak traffic. Consider either adding a rate-limiter on the FlowForge side or batching requests — at the current growth rate, failures will likely increase from 2/day to ~15/day within two weeks.',
+  },
+]
+
+// ─── DUMMY WORKFLOW DOCS ─────────────────────────────────────────────────────
+export const DUMMY_WORKFLOW_DOCS: Record<string, {
+  workflowId: string
+  workflowVersion: number
+  markdown: string
+  generatedAt: string
+  editedBy?: string
+  editedAt?: string
+}> = {
+  '1': {
+    workflowId: '1',
+    workflowVersion: 3,
+    markdown: `# Order Processing
+
+This workflow handles incoming orders from the \`orders.created\` Kafka topic and coordinates validation, inventory checks, and customer notifications.
+
+## Trigger
+
+- **Type:** KAFKA
+- **Topic:** \`orders.created\`
+
+## Steps
+
+### 1. Validate Order (HTTP_REQUEST)
+Posts the incoming order payload to the validation service at \`https://api.orders.io/validate\`. On success, continues to the inventory check; on failure, the workflow terminates.
+
+### 2. Check Inventory (CONDITION)
+Evaluates the expression \`$.inventory.available == true\`. Branches the workflow based on inventory availability.
+
+### 3. Send Confirmation (NOTIFY)
+When inventory is available, sends an email confirmation to the customer using the EMAIL channel.
+
+### 4. Alert OPS (NOTIFY)
+When inventory is *not* available, pushes a Slack alert to the \`#ops-alerts\` channel so the operations team can respond.
+
+## Error Handling
+
+Each HTTP step is configured with the default retry policy (3 attempts, exponential backoff). See the workflow definition for step-specific overrides.
+`,
+    generatedAt: new Date(Date.now() - 2 * 86400000).toISOString(),
+  },
+}
+
 // ─── DUMMY NAMESPACES ────────────────────────────────────────────────────────
 export const DUMMY_NAMESPACES: Namespace[] = [
-  { id: 'ns_001', name: 'default', displayName: 'Default', description: 'Default namespace for all resources', createdBy: 'user_001', createdAt: new Date(Date.now() - 90 * 86400000).toISOString() },
-  { id: 'ns_002', name: 'production', displayName: 'Production', description: 'Production environment workflows', createdBy: 'user_001', createdAt: new Date(Date.now() - 60 * 86400000).toISOString() },
-  { id: 'ns_003', name: 'staging', displayName: 'Staging', description: 'Staging and testing workflows', createdBy: 'user_001', createdAt: new Date(Date.now() - 30 * 86400000).toISOString() },
+  { id: 'ns_001', name: 'default', displayName: 'Default', description: 'Default namespace for all entities', createdBy: 'admin', createdAt: '2025-01-01T00:00:00Z' },
+  { id: 'ns_002', name: 'apply', displayName: 'Apply', description: 'Application-specific namespace', createdBy: 'admin', createdAt: '2025-01-02T00:00:00Z' },
 ]

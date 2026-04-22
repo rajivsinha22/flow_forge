@@ -11,6 +11,7 @@ import {
 } from '../api/failedWorkflows'
 import type { FailedWorkflow, ReplayAttempt, StepRetryAttempt } from '../types'
 import { useAuthStore } from '../store/authStore'
+import { useNamespaceStore } from '../store/namespaceStore'
 import StatusBadge from '../components/shared/StatusBadge'
 import ConfirmModal from '../components/shared/ConfirmModal'
 import Spinner from '../components/shared/Spinner'
@@ -864,7 +865,8 @@ const FailedWorkflows: React.FC = () => {
     }
   }, [])
 
-  useEffect(() => { loadData() }, [loadData])
+  const currentNamespace = useNamespaceStore(s => s.currentNamespace)
+  useEffect(() => { loadData() }, [loadData, currentNamespace])
 
   // ── Replay (original context) ───────────────────────────────────────────────
 

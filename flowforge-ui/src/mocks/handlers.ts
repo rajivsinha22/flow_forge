@@ -12,7 +12,9 @@ import {
   DUMMY_ENV_VARS, DUMMY_WORKFLOW_VERSIONS, DUMMY_MODEL_RECORDS,
   DUMMY_SUBSCRIPTION, DUMMY_PLAN_USAGE, DUMMY_PAYMENT_EVENTS, DUMMY_INVOICES,
   DUMMY_INVITATIONS, DUMMY_NAMESPACES,
+  DUMMY_AI_CHAT_SAMPLES, DUMMY_OPTIMIZATION_SUGGESTIONS, DUMMY_WORKFLOW_DOCS,
 } from './data'
+import { PLAN_LIMITS } from '../config/planLimits'
 
 // Wraps data in backend's ApiResponse envelope
 const ok = (data: unknown, message = 'OK') => [200, { success: true, data, message }]
@@ -21,6 +23,23 @@ const notFound = (msg = 'Not found') => [404, { success: false, message: msg }]
 
 // Simulated network delay (ms)
 const DELAY = 300
+
+// Extract the requesting namespace from the X-Namespace header (defaults to 'default')
+function getRequestNamespace(config: { headers?: Record<string, unknown> | unknown }): string {
+  const headers = (config.headers || {}) as Record<string, unknown>
+  const ns = headers['X-Namespace'] ?? headers['x-namespace']
+  return typeof ns === 'string' && ns.length > 0 ? ns : 'default'
+}
+
+// Filter an array to only items whose namespace matches (items with no namespace default to 'default')
+function filterByNamespace<T extends { namespace?: string }>(items: T[], ns: string): T[] {
+  return items.filter(item => (item.namespace ?? 'default') === ns)
+}
+
+// Check whether a namespace name exists in DUMMY_NAMESPACES
+function isValidNamespace(ns: string): boolean {
+  return DUMMY_NAMESPACES.some(n => n.name === ns)
+}
 
 // Helper: paginate an array
 function paginate<T>(items: T[], page = 0, size = 20) {
@@ -115,7 +134,8 @@ export function setupMockHandlers(axiosInstance: AxiosInstance) {
   // ── WORKFLOWS ──────────────────────────────────────────────────────────────
   mock.onGet('/workflows').reply((config) => {
     const params = config.params || {}
-    let workflows = [...DUMMY_WORKFLOWS]
+    const ns = getRequestNamespace(config)
+    let workflows = filterByNamespace([...DUMMY_WORKFLOWS], ns)
     if (params.status) workflows = workflows.filter(w => w.status === params.status)
     if (params.q) {
       const q = params.q.toLowerCase()
@@ -216,7 +236,8 @@ export function setupMockHandlers(axiosInstance: AxiosInstance) {
   // ── EXECUTIONS ─────────────────────────────────────────────────────────────
   mock.onGet('/executions').reply((config) => {
     const params = config.params || {}
-    let execs = [...DUMMY_EXECUTIONS]
+    const ns = getRequestNamespace(config)
+    let execs = filterByNamespace([...DUMMY_EXECUTIONS], ns)
     if (params.status) execs = execs.filter(e => e.status === params.status)
     if (params.workflowName) execs = execs.filter(e => e.workflowName === params.workflowName)
     if (params.q) {
@@ -346,7 +367,8 @@ export function setupMockHandlers(axiosInstance: AxiosInstance) {
   // ── FAILED WORKFLOWS ───────────────────────────────────────────────────────
   mock.onGet('/failed-workflows').reply((config) => {
     const params = config.params || {}
-    let items = [...DUMMY_FAILED_WORKFLOWS]
+    const ns = getRequestNamespace(config)
+    let items = filterByNamespace([...DUMMY_FAILED_WORKFLOWS], ns)
     if (params.status) items = items.filter(d => d.status === params.status)
     return ok(paginate(items, params.page, params.size))
   })
@@ -396,9 +418,12 @@ export function setupMockHandlers(axiosInstance: AxiosInstance) {
   })
 
   // ── TRIGGERS ───────────────────────────────────────────────────────────────
+  const triggers: any[] = [...DUMMY_TRIGGERS]
   mock.onGet('/triggers').reply((config) => {
     const params = config.params || {}
-    return ok(paginate(DUMMY_TRIGGERS, params.page, params.size))
+    const ns = getRequestNamespace(config)
+    const filtered = filterByNamespace(triggers, ns)
+    return ok(paginate(filtered, params.page, params.size))
   })
   mock.onPost('/triggers').reply((config) => {
     const body = JSON.parse(config.data || '{}')
@@ -419,7 +444,11 @@ export function setupMockHandlers(axiosInstance: AxiosInstance) {
   ]))
 
   // ── WEBHOOKS ───────────────────────────────────────────────────────────────
-  mock.onGet('/webhooks/deliveries').reply(ok(paginate(DUMMY_WEBHOOK_DELIVERIES)))
+  mock.onGet('/webhooks/deliveries').reply((config) => {
+    const ns = getRequestNamespace(config)
+    const filtered = filterByNamespace([...DUMMY_WEBHOOK_DELIVERIES], ns)
+    return ok(paginate(filtered))
+  })
   mock.onGet(new RegExp('/webhooks/deliveries/[^/]+$')).reply((config) => {
     const id = config.url!.split('/').pop()!
     const wh = DUMMY_WEBHOOK_DELIVERIES.find(w => w.id === id)
@@ -449,9 +478,9 @@ export function setupMockHandlers(axiosInstance: AxiosInstance) {
 
   mock.onGet('/model-records').reply((config) => {
     const { dataModelId } = config.params || {}
-    const filtered = dataModelId
-      ? modelRecords.filter((r: any) => r.dataModelId === dataModelId)
-      : modelRecords
+    const ns = getRequestNamespace(config)
+    let filtered = filterByNamespace(modelRecords, ns)
+    if (dataModelId) filtered = filtered.filter((r: any) => r.dataModelId === dataModelId)
     return ok(filtered)
   })
 
@@ -463,8 +492,10 @@ export function setupMockHandlers(axiosInstance: AxiosInstance) {
 
   mock.onPost('/model-records').reply((config) => {
     const body = JSON.parse(config.data || '{}')
+    const ns = getRequestNamespace(config)
     const record = {
       id: `mr-${Date.now()}`,
+      namespace: ns,
       clientId: 'client-1',
       dataModelId: body.dataModelId,
       name: body.name,
@@ -505,6 +536,58 @@ export function setupMockHandlers(axiosInstance: AxiosInstance) {
     const id = config.url?.split('/').pop()
     modelRecords = modelRecords.filter((r: any) => r.id !== id)
     return ok(null)
+  })
+
+  // ── DATA MODELS (minimal list for namespace filtering) ─────────────────────
+  // Kept inline to avoid a circular import between axios.ts ↔ handlers.ts ↔ api/models.ts.
+  const dataModels: any[] = [
+    { id: 'model-1', namespace: 'default', clientId: 'client-1', name: 'OrderRequest', description: 'Schema for incoming order placement requests', schemaJson: '{}', fieldNames: ['orderId','customerId','amount','currency','items'], tags: 'orders,payments', active: true, createdBy: 'admin', createdAt: '2026-01-10T09:00:00', updatedAt: '2026-02-15T14:30:00' },
+    { id: 'model-2', namespace: 'default', clientId: 'client-1', name: 'UserRegistration', description: 'Schema for new user sign-up payloads', schemaJson: '{}', fieldNames: ['email','name','phone','role'], tags: 'users,auth', active: true, createdBy: 'admin', createdAt: '2026-01-20T11:00:00', updatedAt: '2026-02-20T10:00:00' },
+    { id: 'model-3', namespace: 'apply', clientId: 'client-1', name: 'WebhookEvent', description: 'Generic webhook event envelope', schemaJson: '{}', fieldNames: ['event','timestamp','source','payload'], tags: 'webhooks,events', active: true, createdBy: 'system', createdAt: '2026-02-01T08:00:00', updatedAt: '2026-02-01T08:00:00' },
+  ]
+
+  mock.onGet('/models').reply((config) => {
+    const ns = getRequestNamespace(config)
+    return ok(filterByNamespace(dataModels, ns))
+  })
+
+  mock.onGet(new RegExp('^/models/[^/]+$')).reply((config) => {
+    const id = config.url!.split('/').pop()!
+    const m = dataModels.find(d => d.id === id)
+    return m ? ok(m) : notFound('Model not found')
+  })
+
+  // ── PATCH namespace endpoints ──────────────────────────────────────────────
+  const patchNamespace = (list: any[], id: string, body: string | undefined) => {
+    const parsed = JSON.parse(body || '{}')
+    const targetNs = parsed.namespace
+    if (!targetNs || !isValidNamespace(targetNs)) {
+      return [400, { success: false, message: `Invalid namespace: ${targetNs}` }]
+    }
+    const idx = list.findIndex((item: any) => item.id === id)
+    if (idx < 0) return notFound()
+    list[idx] = { ...list[idx], namespace: targetNs }
+    return ok(list[idx])
+  }
+
+  mock.onPatch(new RegExp('^/workflows/[^/]+/namespace$')).reply((config) => {
+    const id = config.url!.split('/')[2]
+    return patchNamespace(DUMMY_WORKFLOWS as any[], id, config.data)
+  })
+
+  mock.onPatch(new RegExp('^/models/[^/]+/namespace$')).reply((config) => {
+    const id = config.url!.split('/')[2]
+    return patchNamespace(dataModels, id, config.data)
+  })
+
+  mock.onPatch(new RegExp('^/model-records/[^/]+/namespace$')).reply((config) => {
+    const id = config.url!.split('/')[2]
+    return patchNamespace(modelRecords, id, config.data)
+  })
+
+  mock.onPatch(new RegExp('^/triggers/[^/]+/namespace$')).reply((config) => {
+    const id = config.url!.split('/')[2]
+    return patchNamespace(triggers, id, config.data)
   })
 
   // ── BILLING ─────────────────────────────────────────────────────────────────
@@ -576,4 +659,93 @@ export function setupMockHandlers(axiosInstance: AxiosInstance) {
 
   mock.onGet(/\/users\/[a-zA-Z0-9_]+\/namespaces$/).reply(200, { success: true, data: ['default', 'production'] })
   mock.onPut(/\/users\/[a-zA-Z0-9_]+\/namespaces$/).reply(200, { success: true, data: null, message: 'Namespaces assigned' })
+
+  // ── AI CHAT ───────────────────────────────────────────────────────────────
+  // module-level counter for this mock session — simulates per-day usage
+  let aiChatUsedToday = 0
+  const aiChatLimit = PLAN_LIMITS.FREE.maxAiChatMessagesPerDay
+
+  mock.onPost('/ai/chat').reply((config) => {
+    const body = JSON.parse(config.data || '{}')
+    const message = (body.message || '').toLowerCase()
+
+    if (aiChatUsedToday >= aiChatLimit) {
+      return [403, { success: false, code: 'PLAN_LIMIT_EXCEEDED', message: `Daily AI chat limit reached (${aiChatUsedToday}/${aiChatLimit}). Upgrade to continue.` }]
+    }
+
+    const match = DUMMY_AI_CHAT_SAMPLES.find((s) => s.match.some((kw) => message.includes(kw)))
+    const fallback = {
+      answer: `I understand you're asking about "${body.message}". I don't have a pre-canned answer for that in demo mode, but in production I'd analyze your execution history and respond with specific insights. Try asking about failures, slow workflows, or a specific workflow name.`,
+      citations: [],
+    }
+    const chosen = match ?? fallback
+    aiChatUsedToday += 1
+    return ok({
+      answer: chosen.answer,
+      citations: chosen.citations,
+      usedToday: aiChatUsedToday,
+      limitPerDay: aiChatLimit,
+    })
+  })
+
+  // ── WORKFLOW OPTIMIZATION ────────────────────────────────────────────────
+  mock.onPost(new RegExp('^/workflows/[^/]+/optimize$')).reply((config) => {
+    const id = config.url!.split('/')[2]
+    return ok({
+      workflowId: id,
+      sampleSize: 50,
+      analyzedAt: new Date().toISOString(),
+      summary: 'Analyzed the last 50 executions. Found 3 opportunities to improve reliability, latency, and cost. The most impactful suggestion is adding retries to the check-inventory step.',
+      suggestions: DUMMY_OPTIMIZATION_SUGGESTIONS,
+    })
+  })
+
+  // ── WORKFLOW DOCS ────────────────────────────────────────────────────────
+  // mutable copy so PUT / generate updates persist during the session
+  const workflowDocs: Record<string, any> = { ...DUMMY_WORKFLOW_DOCS }
+
+  mock.onGet(new RegExp('^/workflows/[^/]+/docs$')).reply((config) => {
+    const id = config.url!.split('/')[2]
+    const wf = DUMMY_WORKFLOWS.find(w => w.id === id || w.name === id)
+    const key = wf?.id ?? id
+    const doc = workflowDocs[key]
+    return doc ? ok(doc) : notFound('No documentation found')
+  })
+
+  mock.onPost(new RegExp('^/workflows/[^/]+/docs/generate$')).reply((config) => {
+    const id = config.url!.split('/')[2]
+    const wf = DUMMY_WORKFLOWS.find(w => w.id === id || w.name === id) as any
+    const key = wf?.id ?? id
+    const displayName = wf?.displayName ?? 'Workflow'
+    const stepsMd = (wf?.steps ?? []).map((s: any, i: number) =>
+      `### ${i + 1}. ${s.name} (${s.type})\n\nStep \`${s.stepId}\` of type **${s.type}**.${s.config?.url ? ` Calls \`${s.config.url}\`.` : ''}${s.config?.channel ? ` Notifies via ${s.config.channel}.` : ''}`
+    ).join('\n\n')
+    const triggerLine = `- **Type:** ${wf?.triggerType ?? 'UNKNOWN'}`
+    const topicLine = wf?.kafkaTopic ? `\n- **Topic:** \`${wf.kafkaTopic}\`` : ''
+    const cronLine = wf?.cronExpression ? `\n- **Cron:** \`${wf.cronExpression}\`` : ''
+    const doc = {
+      workflowId: key,
+      workflowVersion: wf?.version ?? 1,
+      markdown: `# ${displayName}\n\nThis workflow was auto-documented on ${new Date().toLocaleString()}.\n\n## Trigger\n\n${triggerLine}${topicLine}${cronLine}\n\n## Steps\n\n${stepsMd || '_No steps defined yet._'}\n\n## Error Handling\n\nEach step follows the default retry policy unless overridden. See the workflow definition for specific configurations.\n`,
+      generatedAt: new Date().toISOString(),
+    }
+    workflowDocs[key] = doc
+    return ok(doc)
+  })
+
+  mock.onPut(new RegExp('^/workflows/[^/]+/docs$')).reply((config) => {
+    const id = config.url!.split('/')[2]
+    const wf = DUMMY_WORKFLOWS.find(w => w.id === id || w.name === id)
+    const key = wf?.id ?? id
+    const body = JSON.parse(config.data || '{}')
+    const existing = workflowDocs[key] || { workflowId: key, workflowVersion: wf?.version ?? 1, generatedAt: new Date().toISOString() }
+    const updated = {
+      ...existing,
+      markdown: body.markdown,
+      editedBy: 'admin@acme.com',
+      editedAt: new Date().toISOString(),
+    }
+    workflowDocs[key] = updated
+    return ok(updated)
+  })
 }

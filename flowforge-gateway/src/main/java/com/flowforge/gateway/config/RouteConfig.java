@@ -64,6 +64,19 @@ public class RouteConfig {
                         .uri(clientServiceUrl))
 
                 // ── WORKFLOW SERVICE ───────────────────────────────────────────────────
+                // Auto-generated workflow documentation (GenAI) — workflow-service
+                .route("workflow-docs-routes", r -> r
+                        .path("/api/v1/workflows/*/docs/**", "/api/v1/workflows/*/docs")
+                        .filters(f -> f.filter(jwtAuthFilter.apply(new JwtAuthFilter.Config())))
+                        .uri(workflowServiceUrl))
+
+                // Workflow optimizer (GenAI) — execution-engine
+                // Must be declared BEFORE the generic /api/v1/workflows/** route so it wins.
+                .route("workflow-optimize-routes", r -> r
+                        .path("/api/v1/workflows/*/optimize")
+                        .filters(f -> f.filter(jwtAuthFilter.apply(new JwtAuthFilter.Config())))
+                        .uri(executionServiceUrl))
+
                 .route("workflow-routes", r -> r
                         .path("/api/v1/workflows/**")
                         .filters(f -> f.filter(jwtAuthFilter.apply(new JwtAuthFilter.Config())))
@@ -72,6 +85,12 @@ public class RouteConfig {
                 // ── EXECUTION ENGINE ───────────────────────────────────────────────────
                 .route("execution-routes", r -> r
                         .path("/api/v1/executions/**")
+                        .filters(f -> f.filter(jwtAuthFilter.apply(new JwtAuthFilter.Config())))
+                        .uri(executionServiceUrl))
+
+                // AI chat assistant (GenAI) — execution-engine
+                .route("ai-chat-routes", r -> r
+                        .path("/api/v1/ai/chat/**")
                         .filters(f -> f.filter(jwtAuthFilter.apply(new JwtAuthFilter.Config())))
                         .uri(executionServiceUrl))
 

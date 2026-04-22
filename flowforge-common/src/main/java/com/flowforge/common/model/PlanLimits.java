@@ -17,11 +17,12 @@ public class PlanLimits {
     private final int reqPerMinute;
     private final int burstCapacity;
     private final int maxWebhooksPerDay;
+    private final int maxAiChatMessagesPerDay;
     private final int priceMonthly; // cents (0 = free, -1 = custom/contact sales)
 
     private PlanLimits(int maxWorkflows, int maxModels, int maxExecutionsPerMonth,
                        int maxTeamMembers, int reqPerMinute, int burstCapacity,
-                       int maxWebhooksPerDay, int priceMonthly) {
+                       int maxWebhooksPerDay, int maxAiChatMessagesPerDay, int priceMonthly) {
         this.maxWorkflows = maxWorkflows;
         this.maxModels = maxModels;
         this.maxExecutionsPerMonth = maxExecutionsPerMonth;
@@ -29,6 +30,7 @@ public class PlanLimits {
         this.reqPerMinute = reqPerMinute;
         this.burstCapacity = burstCapacity;
         this.maxWebhooksPerDay = maxWebhooksPerDay;
+        this.maxAiChatMessagesPerDay = maxAiChatMessagesPerDay;
         this.priceMonthly = priceMonthly;
     }
 
@@ -45,6 +47,7 @@ public class PlanLimits {
                     10,      // req/min
                     20,      // burst capacity
                     100,     // webhooks/day
+                    20,      // AI chat messages/day
                     0        // free
             );
             case PRO -> new PlanLimits(
@@ -55,6 +58,7 @@ public class PlanLimits {
                     60,      // req/min
                     100,     // burst capacity
                     10_000,  // webhooks/day
+                    500,     // AI chat messages/day
                     4_900    // $49/mo
             );
             case ENTERPRISE -> new PlanLimits(
@@ -65,6 +69,7 @@ public class PlanLimits {
                     600,     // req/min
                     1_000,   // burst capacity
                     -1,
+                    -1,      // AI chat messages/day (unlimited)
                     -1       // custom pricing
             );
         };
@@ -87,6 +92,7 @@ public class PlanLimits {
     public int getReqPerMinute() { return reqPerMinute; }
     public int getBurstCapacity() { return burstCapacity; }
     public int getMaxWebhooksPerDay() { return maxWebhooksPerDay; }
+    public int getMaxAiChatMessagesPerDay() { return maxAiChatMessagesPerDay; }
     public int getPriceMonthly() { return priceMonthly; }
 
     @Override
@@ -99,6 +105,7 @@ public class PlanLimits {
                 ", reqPerMinute=" + reqPerMinute +
                 ", burstCapacity=" + burstCapacity +
                 ", maxWebhooksPerDay=" + maxWebhooksPerDay +
+                ", maxAiChatMessagesPerDay=" + maxAiChatMessagesPerDay +
                 ", priceMonthly=" + priceMonthly +
                 '}';
     }
@@ -115,12 +122,14 @@ public class PlanLimits {
                 reqPerMinute == that.reqPerMinute &&
                 burstCapacity == that.burstCapacity &&
                 maxWebhooksPerDay == that.maxWebhooksPerDay &&
+                maxAiChatMessagesPerDay == that.maxAiChatMessagesPerDay &&
                 priceMonthly == that.priceMonthly;
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(maxWorkflows, maxModels, maxExecutionsPerMonth,
-                maxTeamMembers, reqPerMinute, burstCapacity, maxWebhooksPerDay, priceMonthly);
+                maxTeamMembers, reqPerMinute, burstCapacity, maxWebhooksPerDay,
+                maxAiChatMessagesPerDay, priceMonthly);
     }
 }

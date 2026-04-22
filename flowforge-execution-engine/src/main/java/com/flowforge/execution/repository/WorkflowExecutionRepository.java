@@ -43,4 +43,22 @@ public interface WorkflowExecutionRepository extends MongoRepository<WorkflowExe
     Page<WorkflowExecution> searchByClientIdAndNamespaceAndWorkflowName(String clientId, String namespace, String query, Pageable pageable);
 
     Page<WorkflowExecution> findByClientIdAndNamespaceAndStartedAtBetween(String clientId, String namespace, LocalDateTime from, LocalDateTime to, Pageable pageable);
+
+    // ── Additional helpers for AI features ───────────────────────────────────
+
+    long countByClientIdAndNamespace(String clientId, String namespace);
+
+    long countByClientIdAndNamespaceAndStatus(String clientId, String namespace, String status);
+
+    long countByClientIdAndNamespaceAndStatusAndStartedAtAfter(String clientId, String namespace, String status, LocalDateTime after);
+
+    long countByClientIdAndNamespaceAndStatusAndWorkflowNameAndStartedAtAfter(String clientId, String namespace, String status, String workflowName, LocalDateTime after);
+
+    long countByClientIdAndNamespaceAndWorkflowNameAndStartedAtAfter(String clientId, String namespace, String workflowName, LocalDateTime after);
+
+    List<WorkflowExecution> findByClientIdAndNamespaceAndWorkflowIdAndStartedAtAfter(String clientId, String namespace, String workflowId, LocalDateTime after);
+
+    List<WorkflowExecution> findByClientIdAndNamespaceAndStartedAtAfter(String clientId, String namespace, LocalDateTime after);
+
+    List<WorkflowExecution> findTop100ByClientIdAndNamespaceAndWorkflowIdOrderByStartedAtDesc(String clientId, String namespace, String workflowId);
 }

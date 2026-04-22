@@ -1,6 +1,7 @@
 package com.flowforge.workflow.controller;
 
 import com.flowforge.common.response.ApiResponse;
+import com.flowforge.workflow.dto.ChangeNamespaceRequest;
 import com.flowforge.workflow.dto.ModelRecordRequest;
 import com.flowforge.workflow.model.ModelRecord;
 import com.flowforge.workflow.service.ModelRecordService;
@@ -10,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -109,6 +111,19 @@ public class ModelRecordController {
 
         ModelRecord record = modelRecordService.updateData(clientId, id, data);
         return ResponseEntity.ok(ApiResponse.success(record));
+    }
+
+    /**
+     * PATCH /api/v1/model-records/{id}/namespace
+     * Move a model record to a different namespace.
+     */
+    @PatchMapping("/{id}/namespace")
+    public ResponseEntity<ApiResponse<ModelRecord>> changeNamespace(
+            @PathVariable String id,
+            @RequestBody ChangeNamespaceRequest request) {
+
+        ModelRecord updated = modelRecordService.changeNamespace(id, request.getNamespace());
+        return ResponseEntity.ok(ApiResponse.success(updated));
     }
 
     /**

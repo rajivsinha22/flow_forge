@@ -43,6 +43,8 @@ public interface WorkflowDefinitionRepository extends MongoRepository<WorkflowDe
 
     List<WorkflowDefinition> findByClientIdAndNamespaceAndName(String clientId, String namespace, String name);
 
+    boolean existsByClientIdAndNamespaceAndName(String clientId, String namespace, String name);
+
     Page<WorkflowDefinition> findByClientIdAndNamespaceAndStatus(String clientId, String namespace, String status, Pageable pageable);
 
     long countByClientIdAndNamespace(String clientId, String namespace);

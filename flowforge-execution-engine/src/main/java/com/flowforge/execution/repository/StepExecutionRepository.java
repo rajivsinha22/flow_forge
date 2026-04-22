@@ -19,4 +19,12 @@ public interface StepExecutionRepository extends MongoRepository<StepExecution, 
     List<StepExecution> findByExecutionIdAndStatus(String executionId, String status);
 
     void deleteByExecutionId(String executionId);
+
+    List<StepExecution> findByExecutionIdIn(List<String> executionIds);
+
+    List<StepExecution> findByClientIdAndNamespaceAndStatusAndStartedAtAfter(
+            String clientId, String namespace, String status, java.time.LocalDateTime after);
+
+    List<StepExecution> findByClientIdAndNamespaceAndStartedAtAfter(
+            String clientId, String namespace, java.time.LocalDateTime after);
 }
